@@ -336,6 +336,7 @@ class ElectronBackend:
             return "[Error: Could not fetch meeting summary.]"
 
     def query_openai_sales(self, summary, last_utterance, metadata):
+        # Uses a prompt that instructs the model to use Jeremy Miner's NEPQ and modern consultative sales tactics, reference recent customer statements, use temporal/contextual cues, and provide specific, actionable suggestions.
         prompt_template = self.read_prompt_file('prompt_sales.txt')
         prompt = prompt_template.replace('{summary}', summary).replace('{last_utterance}', last_utterance).replace('{metadata}', metadata)
         try:
@@ -343,7 +344,7 @@ class ElectronBackend:
             response = client.chat.completions.create(
                 model="gpt-4o",
                 messages=[
-                    {"role": "system", "content": "You are a real-time AI sales assistant. Your job is to suggest what the rep should say next, based on the conversation so far and the most recent utterance."},
+                    {"role": "system", "content": "You are a real-time AI sales assistant. Your job is to suggest what the rep should say next, using advanced sales tactics (like Jeremy Miner's NEPQ: problem awareness, solution awareness, consequence, commitment, etc.)."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3

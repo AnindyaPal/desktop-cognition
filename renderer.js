@@ -39,6 +39,26 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     updateAgentPanel(); // Set initial agent panel
     sendAgentToBackend(); // Send initial agent to backend
+
+    // Add copy MOM button logic
+    const copyMomBtn = document.getElementById('copyMomBtn');
+    if (copyMomBtn) {
+        copyMomBtn.addEventListener('click', () => {
+            const momText = momContent.textContent || '';
+            const actionItems = Array.from(actionItemsList.querySelectorAll('li')).map(li => li.textContent).join('\n');
+            let copyText = '';
+            if (momText.trim()) {
+                copyText += momText.trim() + '\n\n';
+            }
+            if (actionItems.trim()) {
+                copyText += 'Action Items:\n' + actionItems;
+            }
+            navigator.clipboard.writeText(copyText.trim()).then(() => {
+                copyMomBtn.title = 'Copied!';
+                setTimeout(() => { copyMomBtn.title = 'Copy MOM & Action Items'; }, 1200);
+            });
+        });
+    }
 });
 
 function initializeApp() {
@@ -434,8 +454,8 @@ function parseMomAndActionItems(text) {
     if (actionItemsMatch) {
         const itemsText = actionItemsMatch[1];
         actionItems = itemsText.split(/\n|\r/)
-            .map(line => line.replace(/^[-*•]\s*/, '').trim())
-            .filter(line => line.length > 0);
+            .map(line => line.replace(/^[*\-•\s]+/, '').trim())
+            .filter(line => line.length > 0 && !/^[-*•]+$/.test(line));
     }
     // MOM is everything before Action Items
     const momMatch = text.match(/^(.*?)(?:Action Items|$)/is);
