@@ -16,10 +16,16 @@ import numpy as np
 import sounddevice as sd
 from faster_whisper import WhisperModel
 import logging
+import os
+import openai
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# OpenAI API key (for demo only, do not hardcode in production)
+OPENAI_KEY = "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"
+client = openai.OpenAI(api_key=OPENAI_KEY)
 
 class ElectronBackend:
     def __init__(self):
@@ -51,12 +57,28 @@ class ElectronBackend:
         self.command_thread.daemon = True
         self.command_thread.start()
         
+        self.agent = "general"  # default
+        self.transcription_buffer = []
+        self.last_agent_output = ""
+        self.agent_output_lock = threading.Lock()
+        self.agent_output_thread = threading.Thread(target=self.agent_output_loop)
+        self.agent_output_thread.daemon = True
+        self.agent_output_thread.start()
+        
+        self.sales_summary = []  # running summary bullets
+        self.sales_metadata = {}  # optional metadata
+        self.sales_last_utterances = []  # buffer for last 10 seconds
+        self.sales_suggestion_interval = 10  # seconds
+        self.sales_last_suggestion_time = 0
+        
     def listen_for_commands(self):
         """Listen for commands from Electron"""
         while True:
             try:
                 command = input().strip()
-                if command == "START":
+                if command.startswith("AGENT:"):
+                    self.agent = command.split(":", 1)[1].strip()
+                elif command == "START":
                     self.start_listening()
                 elif command == "STOP":
                     self.stop_listening()
@@ -73,6 +95,11 @@ class ElectronBackend:
         if not self.is_listening:
             self.is_listening = True
             self.is_processing = True
+            self.transcription_buffer = []  # Reset buffer on start
+            self.sales_summary = []
+            self.sales_metadata = {}
+            self.sales_last_utterances = []
+            self.sales_last_suggestion_time = 0
             
             # Start audio processing thread
             self.audio_thread = threading.Thread(target=self.process_audio)
@@ -100,6 +127,16 @@ class ElectronBackend:
             if hasattr(self, 'audio_stream'):
                 self.audio_stream.stop()
                 self.audio_stream.close()
+            
+            # On stop, if agent is general, send buffer to OpenAI
+            if self.agent == "general" and self.transcription_buffer:
+                text = " ".join(self.transcription_buffer)
+                logger.info("Sending meeting transcript to OpenAI (gpt-4o)...")
+                response = self.query_openai_general(text)
+                self.last_agent_output = response
+                print(f"AGENT_OUTPUT:{response}")
+                sys.stdout.flush()
+                self.transcription_buffer = []
             
             logger.info("Stopped listening")
     
@@ -180,14 +217,26 @@ class ElectronBackend:
             if transcription.strip():
                 print(f"TRANSCRIPTION:{transcription}")
                 sys.stdout.flush()
-                
-                # Generate placeholder sentiment for now
-                sentiment = self.generate_placeholder_sentiment(transcription)
-                print(f"SENTIMENT:{json.dumps(sentiment)}")
-                sys.stdout.flush()
+                with self.agent_output_lock:
+                    self.transcription_buffer.append(transcription)
+                # For sales agent, buffer utterances and send suggestions every interval
+                if self.agent == "sales":
+                    self.sales_last_utterances.append(transcription)
+                    # Keep only last 3 utterances (~9 seconds if 3s chunks)
+                    self.sales_last_utterances = self.sales_last_utterances[-3:]
+                    now = time.time()
+                    if now - self.sales_last_suggestion_time > self.sales_suggestion_interval:
+                        self.sales_last_suggestion_time = now
+                        # Always use the full context for summary
+                        summary = self.generate_sales_summary(full_context=True)
+                        last_utterance = " ".join(self.sales_last_utterances)
+                        metadata = json.dumps(self.sales_metadata) if self.sales_metadata else ''
+                        response = self.query_openai_sales(summary, last_utterance, metadata)
+                        self.last_agent_output = response
+                        print(f"AGENT_OUTPUT:{response}")
+                        sys.stdout.flush()
             
             # Clean up temp file
-            import os
             os.unlink(temp_filename)
             
         except Exception as e:
@@ -259,6 +308,65 @@ class ElectronBackend:
             'emotions': emotions
         }
     
+    def agent_output_loop(self):
+        # No longer needed for general agent, only for sales agent
+        while True:
+            time.sleep(1)
+            if not self.is_listening:
+                continue
+            # No periodic sending for general agent
+            # Only sales agent logic is handled in transcribe_chunk
+
+    def query_openai_general(self, text):
+        prompt_template = self.read_prompt_file('prompt_general.txt')
+        prompt = prompt_template.replace('{transcript}', text)
+        try:
+            logger.info("Calling OpenAI (gpt-4o) for meeting summary...")
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": "You are a helpful meeting assistant."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3
+            )
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            logger.error(f"OpenAI error (general): {e}")
+            return "[Error: Could not fetch meeting summary.]"
+
+    def query_openai_sales(self, summary, last_utterance, metadata):
+        prompt_template = self.read_prompt_file('prompt_sales.txt')
+        prompt = prompt_template.replace('{summary}', summary).replace('{last_utterance}', last_utterance).replace('{metadata}', metadata)
+        try:
+            logger.info("Calling OpenAI (gpt-4o) for sales agent suggestions...")
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": "You are a real-time AI sales assistant. Your job is to suggest what the rep should say next, based on the conversation so far and the most recent utterance."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3
+            )
+            text = response.choices[0].message.content.strip()
+            # Try to extract JSON array
+            try:
+                suggestions = json.loads(text)
+                return json.dumps(suggestions)
+            except Exception:
+                return text
+        except Exception as e:
+            logger.error(f"OpenAI error (sales): {e}")
+            return "[Error: Could not fetch sales suggestions.]"
+
+    def read_prompt_file(self, filename):
+        try:
+            with open(filename, 'r', encoding='utf-8') as f:
+                return f.read()
+        except Exception as e:
+            logger.error(f"Could not read prompt file {filename}: {e}")
+            return ''
+    
     def run(self):
         """Main run loop"""
         try:
@@ -268,6 +376,22 @@ class ElectronBackend:
         except KeyboardInterrupt:
             logger.info("Shutting down...")
             self.stop_listening()
+
+    def generate_sales_summary(self, full_context=False):
+        # If full_context is True, join all transcriptions as context
+        if full_context:
+            return '\n- '.join([''] + [b.strip() for b in self.transcription_buffer if b.strip()])
+        # Otherwise, use the first, middle, and last utterances as a simple summary
+        if not self.transcription_buffer:
+            return ""
+        bullets = []
+        if self.transcription_buffer:
+            bullets.append(self.transcription_buffer[0])
+        if len(self.transcription_buffer) > 2:
+            bullets.append(self.transcription_buffer[len(self.transcription_buffer)//2])
+        if len(self.transcription_buffer) > 1:
+            bullets.append(self.transcription_buffer[-1])
+        return '\n- '.join([''] + [b.strip() for b in bullets if b.strip()])
 
 def main():
     """Main function"""

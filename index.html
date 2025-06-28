@@ -12,12 +12,15 @@
         <div class="header">
             <div class="title">🎤 Mac Cognition</div>
             <div class="controls">
+                <select id="agentDropdown" class="agent-dropdown">
+                    <option value="general">General Agent</option>
+                    <option value="sales">Sales Agent</option>
+                </select>
                 <button id="listenBtn" class="listen-btn">
                     <span class="btn-text">🎧 Start Listening</span>
                     <span class="btn-icon">▶️</span>
                 </button>
-                <button id="minimizeBtn" class="control-btn">─</button>
-                <button id="closeBtn" class="control-btn">✕</button>
+               
             </div>
         </div>
 
@@ -41,63 +44,27 @@
                 </div>
             </div>
 
-            <!-- Right side: Sentiment Analysis -->
+            <!-- Right side: Sales Agent Output (only actionable insights) -->
             <div class="sentiment-panel">
                 <div class="panel-header">
-                    <h3>🧠 Sentiment Analysis</h3>
+                    <h3 id="agentPanelTitle">💼 Sales Agent Output</h3>
                 </div>
-                <div class="sentiment-content">
-                    <div class="sentiment-score">
-                        <div class="score-label">Overall Sentiment</div>
-                        <div id="sentimentScore" class="score-value">Neutral</div>
-                        <div id="sentimentBar" class="sentiment-bar">
-                            <div id="sentimentFill" class="sentiment-fill"></div>
-                        </div>
+                <div id="salesAgentContainer" class="sales-agent-content">
+                    <ul id="salesActionItemsList" class="sales-action-items-list">
+                        <!-- Suggestions will be inserted here -->
+                    </ul>
+                </div>
+                <!-- General Agent: MOM and Action Items -->
+                <div id="generalAgentContainer" class="agent-meeting-content" style="display:none;">
+                    <div class="mom-section">
+                        <div class="mom-title">Minutes of Meeting (MOM)</div>
+                        <div id="momContent" class="mom-content">Meeting summary and decisions will appear here...</div>
                     </div>
-                    
-                    <div class="sentiment-details">
-                        <div class="detail-item">
-                            <span class="detail-label">Emotion:</span>
-                            <span id="emotionText" class="detail-value">Analyzing...</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">Confidence:</span>
-                            <span id="confidenceText" class="detail-value">--</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">Tone:</span>
-                            <span id="toneText" class="detail-value">--</span>
-                        </div>
-                    </div>
-
-                    <div class="sentiment-chart">
-                        <div class="chart-title">Emotion Breakdown</div>
-                        <div class="chart-bars">
-                            <div class="chart-bar">
-                                <div class="bar-label">😊 Joy</div>
-                                <div class="bar-container">
-                                    <div id="joyBar" class="bar-fill" style="width: 0%"></div>
-                                </div>
-                            </div>
-                            <div class="chart-bar">
-                                <div class="bar-label">😔 Sadness</div>
-                                <div class="bar-container">
-                                    <div id="sadnessBar" class="bar-fill" style="width: 0%"></div>
-                                </div>
-                            </div>
-                            <div class="chart-bar">
-                                <div class="bar-label">😠 Anger</div>
-                                <div class="bar-container">
-                                    <div id="angerBar" class="bar-fill" style="width: 0%"></div>
-                                </div>
-                            </div>
-                            <div class="chart-bar">
-                                <div class="bar-label">😨 Fear</div>
-                                <div class="bar-container">
-                                    <div id="fearBar" class="bar-fill" style="width: 0%"></div>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="action-items-section">
+                        <div class="action-items-title">Action Items</div>
+                        <ul id="actionItemsList" class="action-items-list">
+                            <!-- Action items will be inserted here -->
+                        </ul>
                     </div>
                 </div>
             </div>

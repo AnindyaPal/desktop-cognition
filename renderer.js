@@ -2,8 +2,6 @@ const { ipcRenderer } = require('electron');
 
 // DOM elements
 const listenBtn = document.getElementById('listenBtn');
-const minimizeBtn = document.getElementById('minimizeBtn');
-const closeBtn = document.getElementById('closeBtn');
 const statusText = document.getElementById('statusText');
 const statusDot = document.getElementById('statusDot');
 const transcriptionText = document.getElementById('transcriptionText');
@@ -17,15 +15,30 @@ const sadnessBar = document.getElementById('sadnessBar');
 const angerBar = document.getElementById('angerBar');
 const fearBar = document.getElementById('fearBar');
 const version = document.getElementById('version');
+const agentDropdown = document.getElementById('agentDropdown');
+const agentPanelTitle = document.getElementById('agentPanelTitle');
+const agentOutput = document.getElementById('agentOutput');
+const generalAgentContainer = document.getElementById('generalAgentContainer');
+const salesAgentContainer = document.getElementById('salesAgentContainer');
+const momContent = document.getElementById('momContent');
+const actionItemsList = document.getElementById('actionItemsList');
+const conversationSummaryList = document.getElementById('conversationSummaryList');
+const salesActionItemsList = document.getElementById('salesActionItemsList');
+salesActionItemsList.className = 'sales-action-items-list';
+salesAgentContainer.insertBefore(salesActionItemsList, salesAgentContainer.firstChild);
 
 // State
 let isListening = false;
 let transcriptionHistory = [];
+let salesActionItems = [];
+let expandedIndex = null;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
     setupEventListeners();
+    updateAgentPanel(); // Set initial agent panel
+    sendAgentToBackend(); // Send initial agent to backend
 });
 
 function initializeApp() {
@@ -42,18 +55,20 @@ function setupEventListeners() {
     // Listen button
     listenBtn.addEventListener('click', toggleListening);
     
-    // Window controls
-    minimizeBtn.addEventListener('click', () => {
-        ipcRenderer.send('minimize-window');
+    // Agent dropdown
+    agentDropdown.addEventListener('change', () => {
+        updateAgentPanel();
+        sendAgentToBackend();
     });
-    
-    closeBtn.addEventListener('click', () => {
-        ipcRenderer.send('close-window');
-    });
+
     
     // IPC listeners
     ipcRenderer.on('transcription-result', handleTranscriptionResult);
     ipcRenderer.on('sentiment-result', handleSentimentResult);
+    ipcRenderer.on('agent-output', handleAgentOutput);
+    ipcRenderer.on('get-agent', () => {
+        sendAgentToBackend();
+    });
 }
 
 async function toggleListening() {
@@ -106,12 +121,14 @@ function updateUIForListening(listening) {
         listenBtn.classList.add('listening');
         statusText.textContent = 'Listening...';
         statusDot.classList.add('listening');
+        agentDropdown.disabled = true;
     } else {
         btnText.textContent = '🎧 Start Listening';
         btnIcon.textContent = '▶️';
         listenBtn.classList.remove('listening');
         statusText.textContent = 'Ready';
         statusDot.classList.remove('listening');
+        agentDropdown.disabled = false;
     }
 }
 
@@ -332,4 +349,168 @@ blurStyle.textContent = `
         filter: blur(1px);
     }
 `;
-document.head.appendChild(blurStyle); 
+document.head.appendChild(blurStyle);
+
+function updateAgentPanel() {
+    const agent = agentDropdown.value;
+    if (agent === 'general') {
+        agentPanelTitle.textContent = '🧠 General Agent Output';
+        generalAgentContainer.style.display = '';
+        salesAgentContainer.style.display = 'none';
+        momContent.textContent = 'Meeting summary and decisions will appear here...';
+        actionItemsList.innerHTML = '';
+        salesActionItemsList.innerHTML = '';
+        salesActionItems = [];
+    } else if (agent === 'sales') {
+        agentPanelTitle.textContent = '💼 Sales Agent Output';
+        generalAgentContainer.style.display = 'none';
+        salesAgentContainer.style.display = '';
+        salesActionItemsList.innerHTML = '';
+        salesActionItems = [];
+    }
+}
+
+function sendAgentToBackend() {
+    const agent = agentDropdown.value;
+    ipcRenderer.invoke('set-agent', agent);
+}
+
+function handleAgentOutput(event, output) {
+    const agent = agentDropdown.value;
+    if (agent === 'general') {
+        // Parse output for MOM and Action Items
+        const { mom, actionItems } = parseMomAndActionItems(output);
+        momContent.textContent = mom || 'No summary found.';
+        actionItemsList.innerHTML = '';
+        if (actionItems && actionItems.length > 0) {
+            actionItems.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = item;
+                actionItemsList.appendChild(li);
+            });
+        } else {
+            const li = document.createElement('li');
+            li.textContent = 'No action items found.';
+            actionItemsList.appendChild(li);
+        }
+        salesActionItemsList.innerHTML = '';
+        salesActionItems = [];
+    } else {
+        // Sales agent: only actionable insights as cards
+        let suggestions = [];
+        try {
+            let cleanOutput = output.trim();
+            if (cleanOutput.startsWith('```json')) {
+                cleanOutput = cleanOutput.replace(/^```json/, '').replace(/```$/, '').trim();
+            } else if (cleanOutput.startsWith('```')) {
+                cleanOutput = cleanOutput.replace(/^```/, '').replace(/```$/, '').trim();
+            }
+            const parsed = JSON.parse(cleanOutput);
+            if (Array.isArray(parsed)) {
+                // If array of strings, convert to objects
+                if (typeof parsed[0] === 'string') {
+                    suggestions = parsed.map(str => ({ title: str, explanation: "" }));
+                } else {
+                    suggestions = parsed;
+                }
+            } else if (parsed.suggestions && Array.isArray(parsed.suggestions)) {
+                suggestions = parsed.suggestions;
+            }
+        } catch (e) {
+            // Fallback: treat as plain text
+            suggestions = [{ title: output.split('\n')[0], explanation: output.split('\n').slice(1,3).join(' ') }];
+        }
+        salesActionItems = suggestions;
+        renderSalesActionItems();
+    }
+}
+
+function parseMomAndActionItems(text) {
+    // Try to extract MOM and Action Items from OpenAI output
+    let mom = '';
+    let actionItems = [];
+    // Look for "Action Items" section
+    const actionItemsMatch = text.match(/Action Items\s*[:\-\n]*([\s\S]*?)(\n\s*\n|$)/i);
+    if (actionItemsMatch) {
+        const itemsText = actionItemsMatch[1];
+        actionItems = itemsText.split(/\n|\r/)
+            .map(line => line.replace(/^[-*•]\s*/, '').trim())
+            .filter(line => line.length > 0);
+    }
+    // MOM is everything before Action Items
+    const momMatch = text.match(/^(.*?)(?:Action Items|$)/is);
+    if (momMatch) {
+        mom = momMatch[1].replace(/\n+/g, ' ').trim();
+    }
+    return { mom, actionItems };
+}
+
+function parseSalesAgentOutput(text) {
+    // Expecting output like:
+    // 🧠 Conversation Summary\n- bullet\n- bullet\n\n💡 Suggested Next Action:\n1. Title: ...\n   Details: ...\n2. Title: ...\n   Details: ...
+    let summary = [];
+    let suggestions = [];
+    // Extract summary bullets
+    const summaryMatch = text.match(/Summary[\s\S]*?([\-•].*?)(?:\n\n|\n💡|$)/i);
+    if (summaryMatch) {
+        summary = summaryMatch[1].split(/\n/).map(line => line.replace(/^[-•]\s*/, '').trim()).filter(Boolean);
+    }
+    // Extract suggestions
+    const suggestionRegex = /\d+\.\s*Title\s*[:\-]?\s*(.+?)\n\s*Details\s*[:\-]?\s*(.+?)(?=\n\d+\.|$)/gs;
+    let match;
+    while ((match = suggestionRegex.exec(text)) !== null) {
+        suggestions.push({ action: match[1].trim(), details: match[2].trim() });
+    }
+    // Fallback: if no matches, treat the whole output as one suggestion
+    if (suggestions.length === 0 && text.trim()) {
+        suggestions.push({ action: text.trim().split(/\n/)[0], details: text.trim().split(/\n/).slice(1,3).join(' ') });
+    }
+    return { summary, suggestions };
+}
+
+function renderConversationSummary(summary) {
+    conversationSummaryList.innerHTML = '';
+    if (summary && summary.length > 0) {
+        summary.forEach(bullet => {
+            const li = document.createElement('li');
+            li.textContent = bullet;
+            conversationSummaryList.appendChild(li);
+        });
+    } else {
+        const li = document.createElement('li');
+        li.textContent = 'No summary yet.';
+        conversationSummaryList.appendChild(li);
+    }
+}
+
+function renderSalesActionItems() {
+    salesActionItemsList.innerHTML = '';
+    if (!salesActionItems || salesActionItems.length === 0) {
+        const li = document.createElement('li');
+        li.className = 'sales-action-item';
+        li.textContent = 'No suggestions available yet.';
+        salesActionItemsList.appendChild(li);
+        return;
+    }
+    salesActionItems.forEach((item, idx) => {
+        const li = document.createElement('li');
+        li.className = 'sales-action-item';
+        li.textContent = item.title || item.action || '';
+        li.onclick = () => {
+            if (expandedIndex === idx) {
+                expandedIndex = null;
+                renderSalesActionItems();
+            } else {
+                expandedIndex = idx;
+                renderSalesActionItems();
+            }
+        };
+        if (expandedIndex === idx && (item.explanation || item.details)) {
+            const detailsDiv = document.createElement('div');
+            detailsDiv.className = 'sales-action-details';
+            detailsDiv.textContent = item.explanation || item.details;
+            li.appendChild(detailsDiv);
+        }
+        salesActionItemsList.appendChild(li);
+    });
+} 

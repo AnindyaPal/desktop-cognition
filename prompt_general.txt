@@ -1,0 +1,7 @@
+You are a meeting assistant. Given the following transcript, extract:
+- A concise meeting summary
+- Action items (bulleted)
+- Key decisions
+
+Transcript:
+{transcript} 

@@ -70,16 +70,7 @@ function startPythonBackend() {
     stdio: ['pipe', 'pipe', 'pipe']
   });
 
-  pythonProcess.stdout.on('data', (data) => {
-    const message = data.toString().trim();
-    if (message.startsWith('TRANSCRIPTION:')) {
-      const transcription = message.replace('TRANSCRIPTION:', '').trim();
-      mainWindow.webContents.send('transcription-result', transcription);
-    } else if (message.startsWith('SENTIMENT:')) {
-      const sentiment = message.replace('SENTIMENT:', '').trim();
-      mainWindow.webContents.send('sentiment-result', sentiment);
-    }
-  });
+  pythonProcess.stdout.on('data', handlePythonStdout);
 
   pythonProcess.stderr.on('data', (data) => {
     console.error('Python backend error:', data.toString());
@@ -96,6 +87,10 @@ function startPythonBackend() {
 ipcMain.handle('start-listening', async () => {
   if (!isListening && pythonProcess) {
     isListening = true;
+    // Send current agent to backend
+    if (mainWindow) {
+      mainWindow.webContents.send('get-agent');
+    }
     pythonProcess.stdin.write('START\n');
     return { success: true };
   }
@@ -109,6 +104,14 @@ ipcMain.handle('stop-listening', async () => {
     return { success: true };
   }
   return { success: false, error: 'Not listening' };
+});
+
+ipcMain.handle('set-agent', async (event, agent) => {
+  if (pythonProcess) {
+    pythonProcess.stdin.write(`AGENT:${agent}\n`);
+    return { success: true };
+  }
+  return { success: false };
 });
 
 ipcMain.handle('get-app-version', () => {
@@ -170,4 +173,19 @@ app.on('ready', () => {
       buttons: ['OK']
     });
   }
-}); 
+});
+
+// Listen for AGENT_OUTPUT from Python backend
+function handlePythonStdout(data) {
+  const message = data.toString().trim();
+  if (message.startsWith('TRANSCRIPTION:')) {
+    const transcription = message.replace('TRANSCRIPTION:', '').trim();
+    mainWindow.webContents.send('transcription-result', transcription);
+  } else if (message.startsWith('SENTIMENT:')) {
+    const sentiment = message.replace('SENTIMENT:', '').trim();
+    mainWindow.webContents.send('sentiment-result', sentiment);
+  } else if (message.startsWith('AGENT_OUTPUT:')) {
+    const agentOutput = message.replace('AGENT_OUTPUT:', '').trim();
+    mainWindow.webContents.send('agent-output', agentOutput);
+  }
+} 

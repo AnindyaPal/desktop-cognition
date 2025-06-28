@@ -89,27 +89,6 @@ body {
     font-size: 12px;
 }
 
-/* Control buttons */
-.control-btn {
-    background: rgba(255, 255, 255, 0.2);
-    border: none;
-    border-radius: 50%;
-    width: 28px;
-    height: 28px;
-    color: white;
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.control-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: scale(1.1);
-}
-
 /* Content area */
 .content {
     flex: 1;
@@ -398,4 +377,152 @@ body {
     .content {
         flex-direction: column;
     }
+}
+
+/* Agent dropdown */
+.agent-dropdown {
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    margin-right: 10px;
+    outline: none;
+    transition: background 0.2s;
+    -webkit-app-region: no-drag;
+}
+.agent-dropdown:disabled {
+    background: rgba(255,255,255,0.08);
+    color: #aaa;
+    cursor: not-allowed;
+}
+
+/* Agent output placeholder */
+.agent-output-content {
+    padding: 20px 20px 0 20px;
+    min-height: 60px;
+}
+.agent-output-placeholder {
+    color: #b0b0b0;
+    font-size: 14px;
+    font-style: italic;
+    margin-bottom: 12px;
+    text-align: left;
+}
+
+/* MOM and Action Items for General Agent */
+.agent-meeting-content {
+    padding: 20px 20px 0 20px;
+    min-height: 60px;
+}
+.mom-section {
+    margin-bottom: 24px;
+}
+.mom-title {
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+.mom-content {
+    color: #e0e0e0;
+    font-size: 14px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+    min-height: 48px;
+}
+.action-items-section {
+    margin-bottom: 12px;
+}
+.action-items-title {
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+.action-items-list {
+    list-style-type: disc;
+    margin-left: 24px;
+    color: #feca57;
+    font-size: 14px;
+    padding-bottom: 8px;
+}
+.action-items-list li {
+    margin-bottom: 4px;
+    color: #fff;
+    font-weight: 500;
+}
+
+/* Sales Agent Action Items */
+.sales-action-items-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.sales-action-item {
+    background: rgba(255,255,255,0.85);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    padding: 14px 18px;
+    font-size: 1.08em;
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+    position: relative;
+    -webkit-app-region: no-drag;
+}
+.sales-action-item:hover {
+    background: #f0f6ff;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+}
+.sales-action-details {
+    margin-top: 8px;
+    font-size: 0.98em;
+    color: #2a3a4a;
+    background: #eaf2fb;
+    border-radius: 6px;
+    padding: 10px 14px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    animation: fadeIn 0.2s;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Conversation Summary for Sales Agent */
+.conversation-summary-section {
+    margin-bottom: 18px;
+}
+.summary-title {
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+.conversation-summary-list {
+    list-style-type: disc;
+    margin-left: 24px;
+    color: #feca57;
+    font-size: 14px;
+    padding-bottom: 8px;
+}
+.conversation-summary-list li {
+    margin-bottom: 4px;
+    color: #fff;
+    font-weight: 500;
+}
+.suggested-actions-section {
+    margin-bottom: 12px;
+}
+.suggested-title {
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 6px;
 } 
