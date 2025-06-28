@@ -79,6 +79,7 @@ function setupEventListeners() {
     agentDropdown.addEventListener('change', () => {
         updateAgentPanel();
         sendAgentToBackend();
+        clearTranscription();
     });
 
     
@@ -105,6 +106,7 @@ async function startListening() {
         if (result.success) {
             isListening = true;
             updateUIForListening(true);
+            clearTranscription();
             console.log('Started listening');
         } else {
             console.error('Failed to start listening:', result.error);
@@ -533,4 +535,9 @@ function renderSalesActionItems() {
         }
         salesActionItemsList.appendChild(li);
     });
+}
+
+function clearTranscription() {
+    transcriptionHistory = [];
+    updateTranscriptionDisplay();
 } 
