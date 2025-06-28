@@ -1,0 +1,57 @@
+{
+  "name": "mac-cognition-transcriber",
+  "version": "1.0.0",
+  "description": "Real-time transcription with sentiment analysis overlay",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder",
+    "dist": "electron-builder --publish=never"
+  },
+  "keywords": [
+    "transcription",
+    "whisper",
+    "sentiment",
+    "overlay"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.6.4"
+  },
+  "dependencies": {
+    "node-ipc": "^11.1.0"
+  },
+  "build": {
+    "appId": "com.maccognition.transcriber",
+    "productName": "Mac Cognition Transcriber",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!node_modules/**/*",
+      "!dist/**/*",
+      "!venv/**/*",
+      "!*.py",
+      "!requirements.txt",
+      "!setup.sh"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": "dmg",
+      "icon": "assets/icon.icns"
+    },
+    "dmg": {
+      "title": "Mac Cognition Transcriber",
+      "icon": "assets/icon.icns",
+      "background": "assets/dmg-background.png",
+      "window": {
+        "width": 540,
+        "height": 380
+      }
+    }
+  }
+} 

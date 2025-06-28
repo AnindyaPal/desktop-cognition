@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mac Cognition Transcriber</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header with controls -->
+        <div class="header">
+            <div class="title">🎤 Mac Cognition</div>
+            <div class="controls">
+                <button id="listenBtn" class="listen-btn">
+                    <span class="btn-text">🎧 Start Listening</span>
+                    <span class="btn-icon">▶️</span>
+                </button>
+                <button id="minimizeBtn" class="control-btn">─</button>
+                <button id="closeBtn" class="control-btn">✕</button>
+            </div>
+        </div>
+
+        <!-- Main content area -->
+        <div class="content">
+            <!-- Left side: Transcription -->
+            <div class="transcription-panel">
+                <div class="panel-header">
+                    <h3>📝 Live Transcription</h3>
+                    <div class="status-indicator">
+                        <span id="statusText">Ready</span>
+                        <div id="statusDot" class="status-dot"></div>
+                    </div>
+                </div>
+                <div class="transcription-content">
+                    <div id="transcriptionText" class="transcription-text">
+                        <div class="placeholder-text">
+                            Your speech will appear here in real-time...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right side: Sentiment Analysis -->
+            <div class="sentiment-panel">
+                <div class="panel-header">
+                    <h3>🧠 Sentiment Analysis</h3>
+                </div>
+                <div class="sentiment-content">
+                    <div class="sentiment-score">
+                        <div class="score-label">Overall Sentiment</div>
+                        <div id="sentimentScore" class="score-value">Neutral</div>
+                        <div id="sentimentBar" class="sentiment-bar">
+                            <div id="sentimentFill" class="sentiment-fill"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="sentiment-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Emotion:</span>
+                            <span id="emotionText" class="detail-value">Analyzing...</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Confidence:</span>
+                            <span id="confidenceText" class="detail-value">--</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Tone:</span>
+                            <span id="toneText" class="detail-value">--</span>
+                        </div>
+                    </div>
+
+                    <div class="sentiment-chart">
+                        <div class="chart-title">Emotion Breakdown</div>
+                        <div class="chart-bars">
+                            <div class="chart-bar">
+                                <div class="bar-label">😊 Joy</div>
+                                <div class="bar-container">
+                                    <div id="joyBar" class="bar-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="chart-bar">
+                                <div class="bar-label">😔 Sadness</div>
+                                <div class="bar-container">
+                                    <div id="sadnessBar" class="bar-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="chart-bar">
+                                <div class="bar-label">😠 Anger</div>
+                                <div class="bar-container">
+                                    <div id="angerBar" class="bar-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="chart-bar">
+                                <div class="bar-label">😨 Fear</div>
+                                <div class="bar-container">
+                                    <div id="fearBar" class="bar-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer with info -->
+        <div class="footer">
+            <div class="info">
+                <span id="version">v1.0.0</span>
+                <span id="modelInfo">Model: Whisper Base</span>
+            </div>
+            <div class="drag-handle">⋮⋮</div>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html> 
