@@ -539,4 +539,123 @@ body {
     font-size: 15px;
     font-weight: 600;
     margin-bottom: 6px;
+}
+
+/* Modern toggle switch for sales agent left pane */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 28px;
+  vertical-align: middle;
+  margin: 0 8px;
+}
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #888;
+  border-radius: 34px;
+  transition: .4s;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 22px;
+  width: 22px;
+  left: 4px;
+  bottom: 3px;
+  background-color: #fff;
+  border-radius: 50%;
+  transition: .4s;
+}
+input:checked + .slider:before {
+  transform: translateX(36px);
+}
+input:checked + .slider {
+  background-color: #667eea;
+}
+.toggle-label {
+  font-size: 13px;
+  color: #fff;
+  margin: 0 4px;
+  position: static;
+  top: auto;
+  left: auto;
+  right: auto;
+  user-select: none;
+  pointer-events: none;
+}
+.toggle-live {
+  left: 10px;
+}
+.toggle-summary {
+  right: 10px;
+}
+
+/* Pixel-perfect segmented toggle switch for sales agent left pane */
+.segmented-toggle {
+  position: relative;
+  display: inline-block;
+  width: 120px;
+  height: 36px;
+  background: #a259f7;
+  border-radius: 18px;
+  font-size: 15px;
+  font-weight: 600;
+  user-select: none;
+  vertical-align: middle;
+}
+.segmented-toggle input[type="radio"] {
+  display: none;
+}
+.segmented-toggle label {
+  position: absolute;
+  z-index: 2;
+  width: 50%;
+  height: 100%;
+  line-height: 36px;
+  text-align: center;
+  cursor: pointer;
+  color: #fff;
+  transition: color 0.2s, background 0.2s;
+  font-size: 12px;
+  border-radius: 18px;
+  pointer-events: auto;
+}
+.segmented-toggle label[for="toggle-live"] {
+  left: 0;
+}
+.segmented-toggle label[for="toggle-summary"] {
+  right: 0;
+}
+.segmented-toggle input#toggle-live:checked ~ label[for="toggle-live"] {
+  color: #a259f7;
+  background: #fff;
+}
+.segmented-toggle input#toggle-summary:checked ~ label[for="toggle-summary"] {
+  color: #a259f7;
+  background: #fff;
+}
+.segmented-toggle-slider {
+  position: absolute;
+  z-index: 1;
+  top: 3px;
+  left: 3px;
+  width: 54px;
+  height: 30px;
+  background: #fff;
+  border-radius: 15px;
+  transition: left 0.2s;
+}
+.segmented-toggle input#toggle-summary:checked ~ .segmented-toggle-slider {
+  left: 63px;
+}
+.segmented-toggle input#toggle-live:checked ~ .segmented-toggle-slider {
+  left: 3px;
 } 

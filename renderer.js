@@ -32,6 +32,9 @@ let isListening = false;
 let transcriptionHistory = [];
 let salesActionItems = [];
 let expandedIndex = null;
+let aiSummary = ""; // Store AI-generated summary
+let salesLeftPaneMode = 'summary'; // Default
+let currentAgent = 'general'; // Added for the new agent dropdown logic
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -59,6 +62,54 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
+
+    // Patch: Always set currentAgent and updateAgentPanel on dropdown change
+    if (agentDropdown) {
+        agentDropdown.addEventListener('change', () => {
+            currentAgent = agentDropdown.value;
+            updateAgentPanel();
+            clearTranscription();
+        });
+    }
+
+    // Always attach radio listeners
+    const radios = document.getElementsByName('salesLeftPaneMode');
+    radios.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            salesLeftPaneMode = e.target.value;
+            updateSalesLeftPane();
+        });
+    });
+
+    // Ensure toggle is shown if agent is sales on load
+    updateSalesLeftPane();
+
+    // On toggle change
+    const toggle = document.getElementById('salesLeftPaneToggle');
+    if (toggle) {
+        toggle.addEventListener('change', (e) => {
+            salesLeftPaneMode = e.target.checked ? 'summary' : 'transcription';
+            updateSalesLeftPane();
+        });
+    }
+
+    const liveRadio = document.getElementById('toggle-live');
+    const summaryRadio = document.getElementById('toggle-summary');
+    if (liveRadio && summaryRadio) {
+        liveRadio.addEventListener('change', () => {
+            if (liveRadio.checked) {
+                salesLeftPaneMode = 'transcription';
+                updateSalesLeftPane();
+            }
+        });
+        summaryRadio.addEventListener('change', () => {
+            if (summaryRadio.checked) {
+                salesLeftPaneMode = 'summary';
+                updateSalesLeftPane();
+            }
+        });
+    }
+    updateSalesLeftPane();
 });
 
 function initializeApp() {
@@ -75,18 +126,11 @@ function setupEventListeners() {
     // Listen button
     listenBtn.addEventListener('click', toggleListening);
     
-    // Agent dropdown
-    agentDropdown.addEventListener('change', () => {
-        updateAgentPanel();
-        sendAgentToBackend();
-        clearTranscription();
-    });
-
-    
     // IPC listeners
     ipcRenderer.on('transcription-result', handleTranscriptionResult);
     ipcRenderer.on('sentiment-result', handleSentimentResult);
     ipcRenderer.on('agent-output', handleAgentOutput);
+    ipcRenderer.on('summary-update', handleSummaryUpdate);
     ipcRenderer.on('get-agent', () => {
         sendAgentToBackend();
     });
@@ -354,25 +398,6 @@ function hideOverlayForScreenshot() {
     }, 2000);
 }
 
-// Handle app focus/blur
-window.addEventListener('focus', () => {
-    document.body.classList.remove('blurred');
-});
-
-window.addEventListener('blur', () => {
-    document.body.classList.add('blurred');
-});
-
-// Add blur effect CSS
-const blurStyle = document.createElement('style');
-blurStyle.textContent = `
-    .blurred .app-container {
-        opacity: 0.7;
-        filter: blur(1px);
-    }
-`;
-document.head.appendChild(blurStyle);
-
 function updateAgentPanel() {
     const agent = agentDropdown.value;
     if (agent === 'general') {
@@ -389,7 +414,11 @@ function updateAgentPanel() {
         salesAgentContainer.style.display = '';
         salesActionItemsList.innerHTML = '';
         salesActionItems = [];
+        salesLeftPaneMode = 'summary';
+        updateSalesLeftPane();
     }
+    console.log('[DEBUG] updateAgentPanel: currentAgent=', currentAgent);
+    updateSalesLeftPane();
 }
 
 function sendAgentToBackend() {
@@ -431,7 +460,7 @@ function handleAgentOutput(event, output) {
             if (Array.isArray(parsed)) {
                 // If array of strings, convert to objects
                 if (typeof parsed[0] === 'string') {
-                    suggestions = parsed.map(str => ({ title: str, explanation: "" }));
+                    suggestions = parsed.map(str => ({ phrasing: str, because_of: "" }));
                 } else {
                     suggestions = parsed;
                 }
@@ -440,10 +469,20 @@ function handleAgentOutput(event, output) {
             }
         } catch (e) {
             // Fallback: treat as plain text
-            suggestions = [{ title: output.split('\n')[0], explanation: output.split('\n').slice(1,3).join(' ') }];
+            suggestions = [{ phrasing: output.split('\n')[0], because_of: "" }];
         }
         salesActionItems = suggestions;
         renderSalesActionItems();
+        renderConversationSummary();
+    }
+}
+
+function handleSummaryUpdate(event, summary) {
+    console.log('[DEBUG] handleSummaryUpdate called, summary:', summary);
+    if (!summary || summary.trim() === '') return;
+    aiSummary = summary;
+    if (currentAgent === 'sales') {
+        if (salesLeftPaneMode === 'summary') renderSalesLeftPaneSummary();
     }
 }
 
@@ -490,19 +529,46 @@ function parseSalesAgentOutput(text) {
     return { summary, suggestions };
 }
 
-function renderConversationSummary(summary) {
-    conversationSummaryList.innerHTML = '';
-    if (summary && summary.length > 0) {
-        summary.forEach(bullet => {
-            const li = document.createElement('li');
-            li.textContent = bullet;
-            conversationSummaryList.appendChild(li);
-        });
+function renderConversationSummary() {
+    // Only render for General Agent (or legacy fallback)
+    if (currentAgent !== 'general') return;
+    const summarySection = document.createElement('div');
+    summarySection.style.marginTop = '20px';
+    summarySection.style.padding = '12px';
+    summarySection.style.background = 'rgba(255,255,255,0.05)';
+    summarySection.style.borderRadius = '8px';
+    summarySection.style.borderTop = '2px solid #667eea';
+    
+    const summaryTitle = document.createElement('div');
+    summaryTitle.style.color = '#fff';
+    summaryTitle.style.fontSize = '14px';
+    summaryTitle.style.fontWeight = '600';
+    summaryTitle.style.marginBottom = '8px';
+    summaryTitle.textContent = '🤖 AI Conversation Summary:';
+    
+    const summaryContent = document.createElement('div');
+    summaryContent.style.color = '#e0e0e0';
+    summaryContent.style.fontSize = '12px';
+    summaryContent.style.lineHeight = '1.4';
+    
+    if (aiSummary && aiSummary.trim()) {
+        // Format the AI summary - it should already be in bullet point format
+        summaryContent.innerHTML = aiSummary.replace(/\n/g, '<br>');
     } else {
-        const li = document.createElement('li');
-        li.textContent = 'No summary yet.';
-        conversationSummaryList.appendChild(li);
+        summaryContent.textContent = 'AI summary will appear here every 30 seconds...';
     }
+    
+    summarySection.appendChild(summaryTitle);
+    summarySection.appendChild(summaryContent);
+    
+    // Remove any existing summary section
+    const existingSummary = salesAgentContainer.querySelector('.conversation-summary');
+    if (existingSummary) {
+        existingSummary.remove();
+    }
+    
+    summarySection.className = 'conversation-summary';
+    salesAgentContainer.appendChild(summarySection);
 }
 
 function renderSalesActionItems() {
@@ -510,14 +576,78 @@ function renderSalesActionItems() {
     if (!salesActionItems || salesActionItems.length === 0) {
         const li = document.createElement('li');
         li.className = 'sales-action-item';
+        li.style.textAlign = 'center';
+        li.style.color = '#888';
+        li.style.fontStyle = 'italic';
         li.textContent = 'No suggestions available yet.';
         salesActionItemsList.appendChild(li);
         return;
     }
+    
     salesActionItems.forEach((item, idx) => {
         const li = document.createElement('li');
         li.className = 'sales-action-item';
-        li.textContent = item.title || item.action || '';
+        li.style.cursor = 'pointer';
+        li.style.transition = 'all 0.2s ease';
+        li.style.border = '1px solid rgba(255,255,255,0.1)';
+        li.style.borderRadius = '12px';
+        li.style.padding = '16px';
+        li.style.marginBottom = '12px';
+        li.style.background = 'rgba(255,255,255,0.08)';
+        li.style.backdropFilter = 'blur(10px)';
+        li.style.position = 'relative'; // For absolute positioned done button
+        
+        // Add done status to item if not exists
+        if (item.done === undefined) {
+            item.done = false;
+        }
+        
+        // Phrasing in quotes
+        const phrasingDiv = document.createElement('div');
+        phrasingDiv.style.fontSize = '14px';
+        phrasingDiv.style.lineHeight = '1.5';
+        phrasingDiv.style.color = item.done ? '#888' : '#fff';
+        phrasingDiv.style.fontWeight = '500';
+        phrasingDiv.style.marginBottom = '8px';
+        phrasingDiv.style.textDecoration = item.done ? 'line-through' : 'none';
+        phrasingDiv.innerHTML = `"${item.phrasing}"`;
+        li.appendChild(phrasingDiv);
+        
+        // Done button (now thumbs up icon)
+        const doneButton = document.createElement('button');
+        doneButton.style.position = 'absolute';
+        doneButton.style.top = '12px';
+        doneButton.style.right = '12px';
+        doneButton.style.background = 'none';
+        doneButton.style.border = 'none';
+        doneButton.style.color = item.done ? '#4CAF50' : '#fff';
+        doneButton.style.fontSize = '20px';
+        doneButton.style.cursor = 'pointer';
+        doneButton.style.transition = 'color 0.2s';
+        doneButton.innerHTML = item.done ? '👍' : '👍';
+        doneButton.title = item.done ? 'Done' : 'Mark as done';
+        doneButton.onclick = (e) => {
+            e.stopPropagation(); // Prevent expanding/collapsing
+            item.done = !item.done;
+            renderSalesActionItems();
+        };
+        doneButton.onmouseenter = () => {
+            doneButton.style.color = '#4CAF50';
+        };
+        doneButton.onmouseleave = () => {
+            doneButton.style.color = item.done ? '#4CAF50' : '#fff';
+        };
+        li.appendChild(doneButton);
+        
+        // Expand/collapse indicator
+        const expandIcon = document.createElement('div');
+        expandIcon.style.textAlign = 'center';
+        expandIcon.style.fontSize = '12px';
+        expandIcon.style.color = '#888';
+        expandIcon.style.marginTop = '8px';
+        expandIcon.textContent = expandedIndex === idx ? '▲' : '▼';
+        li.appendChild(expandIcon);
+        
         li.onclick = () => {
             if (expandedIndex === idx) {
                 expandedIndex = null;
@@ -527,17 +657,129 @@ function renderSalesActionItems() {
                 renderSalesActionItems();
             }
         };
-        if (expandedIndex === idx && (item.explanation || item.details)) {
-            const detailsDiv = document.createElement('div');
-            detailsDiv.className = 'sales-action-details';
-            detailsDiv.textContent = item.explanation || item.details;
-            li.appendChild(detailsDiv);
+        
+        li.onmouseenter = () => {
+            li.style.background = 'rgba(255,255,255,0.12)';
+            li.style.transform = 'translateY(-1px)';
+            li.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+        };
+        
+        li.onmouseleave = () => {
+            li.style.background = 'rgba(255,255,255,0.08)';
+            li.style.transform = 'translateY(0)';
+            li.style.boxShadow = 'none';
+        };
+        
+        if (expandedIndex === idx && item.because_of) {
+            const becauseDiv = document.createElement('div');
+            becauseDiv.style.marginTop = '12px';
+            becauseDiv.style.padding = '12px';
+            becauseDiv.style.background = 'rgba(30, 30, 30, 0.7)'; // Neutral dark background for readability
+            becauseDiv.style.borderRadius = '8px';
+            becauseDiv.style.borderLeft = '3px solid #667eea';
+            
+            const becauseLabel = document.createElement('div');
+            becauseLabel.style.fontSize = '11px';
+            becauseLabel.style.color = '#fff'; // White for readability
+            becauseLabel.style.fontWeight = '600';
+            becauseLabel.style.textTransform = 'uppercase';
+            becauseLabel.style.letterSpacing = '0.5px';
+            becauseLabel.style.marginBottom = '4px';
+            becauseLabel.textContent = 'Because of:';
+            
+            const becauseText = document.createElement('div');
+            becauseText.style.fontSize = '12px';
+            becauseText.style.color = item.done ? '#888' : '#fff'; // White for readability
+            becauseText.style.lineHeight = '1.4';
+            becauseText.style.textDecoration = item.done ? 'line-through' : 'none';
+            becauseText.textContent = item.because_of;
+            
+            becauseDiv.appendChild(becauseLabel);
+            becauseDiv.appendChild(becauseText);
+            li.appendChild(becauseDiv);
         }
+        
         salesActionItemsList.appendChild(li);
     });
 }
 
 function clearTranscription() {
     transcriptionHistory = [];
+    aiSummary = ""; // Reset AI summary
     updateTranscriptionDisplay();
+}
+
+function updateSalesLeftPane() {
+    const isSales = currentAgent === 'sales';
+    showSalesToggle(isSales);
+
+    const transcriptionDiv = document.getElementById('transcriptionText');
+    const summaryDiv = document.getElementById('salesSummaryContainer');
+    const title = document.getElementById('leftPaneTitle');
+    const toggle = document.getElementById('salesLeftPaneToggle');
+    const statusText = document.getElementById('statusText');
+    const statusDot = document.getElementById('statusDot');
+
+    // Hide 'Ready' text and status dot in Sales Agent
+    if (statusText) statusText.style.display = isSales ? 'none' : '';
+    if (statusDot) statusDot.style.display = isSales ? 'none' : '';
+
+    // Debug log
+    console.log('[DEBUG] updateSalesLeftPane: currentAgent=', currentAgent, 'toggle visible=', isSales, 'mode=', salesLeftPaneMode);
+
+    if (!isSales) {
+        transcriptionDiv.style.display = '';
+        summaryDiv.style.display = 'none';
+        title.textContent = 'Live Captions';
+        return;
+    }
+
+    if (toggle) toggle.checked = (salesLeftPaneMode === 'summary');
+
+    if (salesLeftPaneMode === 'summary') {
+        transcriptionDiv.style.display = 'none';
+        summaryDiv.style.display = '';
+        title.textContent = 'Summary';
+        renderSalesLeftPaneSummary();
+    } else {
+        transcriptionDiv.style.display = '';
+        summaryDiv.style.display = 'none';
+        title.textContent = 'Live Captions';
+    }
+}
+
+function renderSalesLeftPaneSummary() {
+    console.log('[DEBUG] renderSalesLeftPaneSummary called, aiSummary:', aiSummary);
+    const container = document.getElementById('salesSummaryContainer');
+    if (!container) return;
+    container.innerHTML = '';
+    const summarySection = document.createElement('div');
+    summarySection.style.marginTop = '0px';
+    summarySection.style.padding = '0px';
+    summarySection.style.background = 'none';
+    summarySection.style.borderRadius = '0px';
+    summarySection.style.borderTop = 'none';
+    const summaryTitle = document.createElement('div');
+    summaryTitle.style.color = '#fff';
+    summaryTitle.style.fontSize = '14px';
+    summaryTitle.style.fontWeight = '600';
+    summaryTitle.style.marginBottom = '8px';
+    summaryTitle.textContent = '🤖 AI Conversation Summary:';
+    const summaryContent = document.createElement('div');
+    summaryContent.style.color = '#e0e0e0';
+    summaryContent.style.fontSize = '12px';
+    summaryContent.style.lineHeight = '1.4';
+    if (aiSummary && aiSummary.trim()) {
+        summaryContent.innerHTML = aiSummary.replace(/\n/g, '<br>');
+    } else {
+        summaryContent.textContent = 'AI summary will appear here every 30 seconds...';
+    }
+    summarySection.appendChild(summaryTitle);
+    summarySection.appendChild(summaryContent);
+    container.appendChild(summarySection);
+}
+
+function showSalesToggle(show) {
+    const toggle = document.getElementById('salesLeftPaneToggleContainer');
+    if (toggle) toggle.style.display = show ? 'block' : 'none';
 } 

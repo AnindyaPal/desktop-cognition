@@ -71,6 +71,12 @@ class ElectronBackend:
         self.sales_suggestion_interval = 10  # seconds
         self.sales_last_suggestion_time = 0
         
+        # AI Summary tracking
+        self.ai_summary = ""  # current AI-generated summary
+        self.summary_update_interval = 30  # seconds
+        self.summary_last_update_time = 0
+        self.last_summary_transcription_count = 0  # Track how many transcriptions were in last summary
+        
     def listen_for_commands(self):
         """Listen for commands from Electron"""
         while True:
@@ -100,6 +106,9 @@ class ElectronBackend:
             self.sales_metadata = {}
             self.sales_last_utterances = []
             self.sales_last_suggestion_time = 0
+            self.ai_summary = ""  # Reset AI summary
+            self.summary_last_update_time = 0
+            self.last_summary_transcription_count = 0  # Reset transcription count
             
             # Start audio processing thread
             self.audio_thread = threading.Thread(target=self.process_audio)
@@ -225,6 +234,8 @@ class ElectronBackend:
                     # Keep only last 3 utterances (~9 seconds if 3s chunks)
                     self.sales_last_utterances = self.sales_last_utterances[-3:]
                     now = time.time()
+                    
+                    # Check if it's time for action items (every 10 seconds)
                     if now - self.sales_last_suggestion_time > self.sales_suggestion_interval:
                         self.sales_last_suggestion_time = now
                         # Always use the full context for summary
@@ -235,6 +246,34 @@ class ElectronBackend:
                         self.last_agent_output = response
                         print(f"AGENT_OUTPUT:{response}")
                         sys.stdout.flush()
+                    
+                    # Check if it's time for summary update (every 30 seconds)
+                    if now - self.summary_last_update_time > self.summary_update_interval:
+                        self.summary_last_update_time = now
+                        
+                        # Get only NEW transcriptions since last summary update
+                        current_transcription_count = len(self.transcription_buffer)
+                        new_transcriptions_start = self.last_summary_transcription_count
+                        new_transcriptions_end = current_transcription_count
+                        
+                        # Get only the new transcriptions (last 30 seconds worth)
+                        new_transcriptions = []
+                        if new_transcriptions_end > new_transcriptions_start:
+                            new_transcriptions = self.transcription_buffer[new_transcriptions_start:new_transcriptions_end]
+                        
+                        # Join new transcriptions into text
+                        new_transcription_text = " ".join(new_transcriptions) if new_transcriptions else ""
+                        
+                        # Only update if we have new transcriptions
+                        if new_transcription_text.strip():
+                            new_summary = self.query_openai_summary(self.ai_summary, new_transcription_text)
+                            if new_summary != self.ai_summary:
+                                self.ai_summary = new_summary
+                                print(f"SUMMARY_UPDATE:{new_summary}")
+                                sys.stdout.flush()
+                        
+                        # Update the count for next time
+                        self.last_summary_transcription_count = current_transcription_count
             
             # Clean up temp file
             os.unlink(temp_filename)
@@ -367,6 +406,36 @@ class ElectronBackend:
         except Exception as e:
             logger.error(f"Could not read prompt file {filename}: {e}")
             return ''
+    
+    def query_openai_summary(self, previous_summary, new_transcript):
+        """Generate AI-powered conversation summary"""
+        try:
+            prompt = self.read_prompt_file("prompt_summary.txt")
+            if not prompt:
+                logger.error("Could not read summary prompt file")
+                return previous_summary
+            
+            # Replace placeholders in prompt
+            prompt = prompt.replace("{previous_summary}", previous_summary or "No previous summary available.")
+            prompt = prompt.replace("{new_transcript}", new_transcript or "No new transcript available.")
+            
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": "You are an expert sales conversation analyst focused on extracting customer insights and business context."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=500,
+                temperature=0.3
+            )
+            
+            summary = response.choices[0].message.content.strip()
+            logger.info(f"Generated AI summary: {len(summary)} characters")
+            return summary
+            
+        except Exception as e:
+            logger.error(f"Error generating AI summary: {e}")
+            return previous_summary
     
     def run(self):
         """Main run loop"""

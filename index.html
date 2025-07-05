@@ -26,13 +26,22 @@
 
         <!-- Main content area -->
         <div class="content">
-            <!-- Left side: Transcription -->
+            <!-- Left side: Transcription (now toggleable for sales agent) -->
             <div class="transcription-panel">
                 <div class="panel-header">
-                    <h3>📝 Live Transcription</h3>
+                    <h3>📝 <span id="leftPaneTitle">Live Captions</span></h3>
                     <div class="status-indicator">
                         <span id="statusText">Ready</span>
                         <div id="statusDot" class="status-dot"></div>
+                    </div>
+                    <div id="salesLeftPaneToggleContainer" style="display:none; margin-left: 24px; -webkit-app-region: no-drag;">
+                      <div class="segmented-toggle">
+                        <input type="radio" id="toggle-live" name="seg-toggle" value="live">
+                        <label for="toggle-live" id="toggle-live-label">Captions</label>
+                        <input type="radio" id="toggle-summary" name="seg-toggle" value="summary" checked>
+                        <label for="toggle-summary" id="toggle-summary-label">Summary</label>
+                        <span class="segmented-toggle-slider"></span>
+                      </div>
                     </div>
                 </div>
                 <div class="transcription-content">
@@ -41,6 +50,7 @@
                             Your speech will appear here in real-time...
                         </div>
                     </div>
+                    <div id="salesSummaryContainer" style="display:none;"></div>
                 </div>
             </div>
 

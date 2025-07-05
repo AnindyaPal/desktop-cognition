@@ -16,9 +16,9 @@ function createWindow() {
     transparent: true,
     frame: false,
     alwaysOnTop: true,
-    resizable: true,
+    resizable: false,
     skipTaskbar: true, // Don't show in taskbar
-    focusable: false, // Prevent focus stealing
+    focusable: true, // Allow focus for sticky overlay
     acceptFirstMouse: false, // Prevent mouse capture
     webPreferences: {
       nodeIntegration: true,
@@ -30,16 +30,22 @@ function createWindow() {
     visualEffectState: 'active'
   });
 
-  // Set special properties for screenshot exclusion (macOS)
-  if (process.platform === 'darwin') {
+  // Set visible on all workspaces and always on top for all platforms
+  function applyAlwaysOnTopAndAllWorkspaces() {
+    // Set it to stay on all workspaces (Spaces)
     mainWindow.setVisibleOnAllWorkspaces(true, {
-      visibleOnFullScreen: true,
-      skipTransformProcessType: true
+      visibleOnFullScreen: true
     });
-    
-    // Set window level to be above everything but excluded from screenshots
-    mainWindow.setAlwaysOnTop(true, 'screen-saver', 1);
+    mainWindow.setAlwaysOnTop(true);
+    // Optional: Click-through like a HUD
+    // mainWindow.setIgnoreMouseEvents(true, { forward: true });
   }
+  applyAlwaysOnTopAndAllWorkspaces();
+
+  // Re-apply always on top and all workspaces when window is shown, focused, or blurred
+  mainWindow.on('show', applyAlwaysOnTopAndAllWorkspaces);
+  mainWindow.on('focus', applyAlwaysOnTopAndAllWorkspaces);
+  mainWindow.on('blur', applyAlwaysOnTopAndAllWorkspaces);
 
   // Enable content protection - hides from screenshots but keeps visible to user
   mainWindow.setContentProtection(true);
@@ -161,20 +167,6 @@ app.on('before-quit', () => {
   }
 });
 
-// Handle microphone permissions
-app.on('ready', () => {
-  // Request microphone permissions
-  if (process.platform === 'darwin') {
-    // On macOS, we need to request permissions
-    dialog.showMessageBox(mainWindow, {
-      type: 'info',
-      title: 'Microphone Permission',
-      message: 'This app needs microphone access for transcription. Please grant permission when prompted.',
-      buttons: ['OK']
-    });
-  }
-});
-
 // Listen for AGENT_OUTPUT from Python backend
 function handlePythonStdout(data) {
   const message = data.toString().trim();
@@ -187,5 +179,8 @@ function handlePythonStdout(data) {
   } else if (message.startsWith('AGENT_OUTPUT:')) {
     const agentOutput = message.replace('AGENT_OUTPUT:', '').trim();
     mainWindow.webContents.send('agent-output', agentOutput);
+  } else if (message.startsWith('SUMMARY_UPDATE:')) {
+    const summary = message.replace('SUMMARY_UPDATE:', '').trim();
+    mainWindow.webContents.send('summary-update', summary);
   }
 } 
