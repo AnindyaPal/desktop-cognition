@@ -15,6 +15,7 @@ function createWindow() {
     y: 100,
     transparent: true,
     frame: false,
+    backgroundColor: '#00000000',
     alwaysOnTop: true,
     resizable: false,
     skipTaskbar: true, // Don't show in taskbar
@@ -26,8 +27,8 @@ function createWindow() {
       enableRemoteModule: true
     },
     titleBarStyle: 'hidden',
-    vibrancy: 'under-window',
-    visualEffectState: 'active'
+    // vibrancy: 'under-window', // Removed for pure transparency
+    // visualEffectState: 'active' // Removed for pure transparency
   });
 
   // Set visible on all workspaces and always on top for all platforms

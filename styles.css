@@ -5,9 +5,22 @@
     box-sizing: border-box;
 }
 
+html, body,
+.app-container,
+.content,
+.transcription-panel,
+.sentiment-panel,
+.panel-header,
+.footer {
+    background: rgba(24,26,27,0.35) !important;
+    box-shadow: none !important;
+}
+
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    background: transparent;
+    font-family: 'Fira Mono', 'SF Mono', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
+    color: #fff;
+    font-size: 11.5px;
+    letter-spacing: 0.01em;
     overflow: hidden;
     user-select: none;
     -webkit-app-region: drag;
@@ -17,11 +30,6 @@ body {
 .app-container {
     width: 800px;
     height: 600px;
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 16px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -33,9 +41,8 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 16px 20px;
-    background: rgba(255, 255, 255, 0.1);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     -webkit-app-region: drag;
+    font-size: 12px;
 }
 
 .title {
@@ -54,47 +61,42 @@ body {
 
 /* Listen button */
 .listen-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border: none;
-    border-radius: 25px;
-    padding: 12px 24px;
-    color: white;
-    font-size: 14px;
+    background: #232425;
+    color: #fff;
+    border: 1.5px solid #333;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: inherit;
     font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
+    padding: 6px 18px;
+    box-shadow: none;
+    transition: border 0.2s, background 0.2s, color 0.2s;
     display: flex;
     align-items: center;
-    gap: 8px;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    gap: 6px;
+    cursor: pointer;
 }
-
-.listen-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+.listen-btn:hover, .listen-btn:focus {
+    border: 1.5px solid #a259f7;
+    background: #23243a;
+    color: #a259f7;
 }
-
 .listen-btn.listening {
-    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
+    background: #181A1B;
+    color: #a259f7;
+    border: 1.5px solid #a259f7;
 }
 
 .btn-icon {
-    font-size: 12px;
+    font-size: 11px;
 }
 
 /* Content area */
 .content {
     flex: 1;
     display: flex;
-    padding: 20px;
-    gap: 20px;
+    padding: 12px;
+    gap: 12px;
     overflow: auto;
 }
 
@@ -102,9 +104,9 @@ body {
 .transcription-panel,
 .sentiment-panel {
     flex: 1;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #202124;
+    border-radius: 6px;
+    border: 1px solid #232425;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -122,9 +124,12 @@ body {
 }
 
 .panel-header {
-    padding: 16px 20px;
-    background: rgba(255, 255, 255, 0.1);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 8px 12px;
+    background: #181A1B;
+    border-bottom: 1px solid #232425;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -140,6 +145,9 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
+    font-size: 12px;
+    color: #888;
+    margin-left: 10px;
 }
 
 #statusText {
@@ -169,16 +177,20 @@ body {
 /* Transcription content */
 .transcription-content {
     flex: 1;
-    padding: 20px;
+    padding: 10px 12px;
     overflow-y: auto;
     -webkit-app-region: no-drag;
+    background: rgba(24,26,27,0.12) !important;
+    border-radius: 6px;
 }
 
 .transcription-text {
     color: white;
-    font-size: 14px;
+    font-size: 11.5px;
     line-height: 1.6;
     min-height: 200px;
+    background: rgba(24,26,27,0.12) !important;
+    border-radius: 6px;
 }
 
 .placeholder-text {
@@ -336,9 +348,8 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 12px 20px;
-    background: rgba(255, 255, 255, 0.05);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
     -webkit-app-region: drag;
+    font-size: 12px;
 }
 
 .info {
@@ -361,7 +372,8 @@ body {
 
 /* Scrollbar styling */
 ::-webkit-scrollbar {
-    width: 6px;
+    width: 8px;
+    background: #181A1B;
 }
 
 ::-webkit-scrollbar-track {
@@ -370,8 +382,8 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 3px;
+    background: #232425;
+    border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -393,22 +405,22 @@ body {
 
 /* Agent dropdown */
 .agent-dropdown {
-    background: rgba(255,255,255,0.2);
+    background: #232425;
     color: #fff;
-    border: none;
-    border-radius: 8px;
-    padding: 8px 16px;
-    font-size: 14px;
-    font-weight: 500;
-    margin-right: 10px;
+    border: 1px solid #333;
+    border-radius: 5px;
+    font-size: 12px;
+    font-family: inherit;
+    padding: 4px 18px 4px 8px;
+    margin-right: 8px;
     outline: none;
-    transition: background 0.2s;
-    -webkit-app-region: no-drag;
+    transition: border 0.2s, background 0.2s;
+    box-shadow: none;
+    height: 28px;
 }
-.agent-dropdown:disabled {
-    background: rgba(255,255,255,0.08);
-    color: #aaa;
-    cursor: not-allowed;
+.agent-dropdown:focus, .agent-dropdown:hover {
+    border: 1.5px solid #a259f7;
+    background: #23243a;
 }
 
 /* Agent output placeholder */
@@ -428,19 +440,24 @@ body {
 .agent-meeting-content {
     padding: 20px 20px 0 20px;
     min-height: 60px;
+    font-size: 10px !important;
 }
 .mom-section {
     margin-bottom: 24px;
+    background: #202124;
+    border-radius: 6px;
+    border: 1px solid #232425;
+    padding: 10px 12px;
 }
 .mom-title {
     color: #fff;
-    font-size: 16px;
+    font-size: 11px !important;
     font-weight: 700;
     margin-bottom: 8px;
 }
 .mom-content {
     color: #e0e0e0;
-    font-size: 14px;
+    font-size: 11.5px !important;
     background: rgba(255,255,255,0.07);
     border-radius: 8px;
     padding: 12px;
@@ -451,10 +468,14 @@ body {
 .action-items-section {
     margin-bottom: 12px;
     -webkit-app-region: no-drag;
+    background: #202124;
+    border-radius: 6px;
+    border: 1px solid #232425;
+    padding: 10px 12px;
 }
 .action-items-title {
     color: #fff;
-    font-size: 15px;
+    font-size: 11px !important;
     font-weight: 600;
     margin-bottom: 6px;
 }
@@ -462,13 +483,14 @@ body {
     list-style-type: disc;
     margin-left: 24px;
     color: #feca57;
-    font-size: 14px;
+    font-size: 11.5px !important;
     padding-bottom: 8px;
 }
 .action-items-list li {
     margin-bottom: 4px;
     color: #fff;
     font-weight: 500;
+    font-size: 11.5px !important;
 }
 
 /* Sales Agent Action Items */
@@ -478,40 +500,31 @@ body {
     margin: 0;
 }
 .sales-action-item {
-    background: rgba(255,255,255,0.85);
-    border-radius: 8px;
-    margin-bottom: 12px;
-    padding: 14px 18px;
-    font-size: 1.08em;
-    font-weight: 500;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-    cursor: pointer;
-    transition: background 0.2s, box-shadow 0.2s;
+    background: #232425;
+    border-radius: 6px;
+    border: 1px solid #232425;
+    margin-bottom: 8px;
+    padding: 10px 12px 18px 12px;
+    font-size: 11.5px;
+    color: #fff;
     position: relative;
-    -webkit-app-region: no-drag;
+    transition: background 0.2s;
 }
 .sales-action-item:hover {
-    background: #f0f6ff;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+    background: #26282A;
 }
-.sales-action-details {
-    margin-top: 8px;
-    font-size: 0.98em;
-    color: #2a3a4a;
-    background: #eaf2fb;
-    border-radius: 6px;
-    padding: 10px 14px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-    animation: fadeIn 0.2s;
-}
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-6px); }
-    to { opacity: 1; transform: translateY(0); }
+.sales-action-item .sales-action-details {
+    font-size: 11.5px;
+    color: #bbb;
 }
 
 /* Conversation Summary for Sales Agent */
 .conversation-summary-section {
     margin-bottom: 18px;
+    background: #202124;
+    border-radius: 6px;
+    border: 1px solid #232425;
+    padding: 10px 12px;
 }
 .summary-title {
     color: #fff;
@@ -602,14 +615,15 @@ input:checked + .slider {
 .segmented-toggle {
   position: relative;
   display: inline-block;
-  width: 120px;
-  height: 36px;
-  background: #a259f7;
-  border-radius: 18px;
-  font-size: 15px;
+  width: 124px;
+  height: 28px;
+  background: #232425;
+  border-radius: 14px;
+  font-size: 12px;
   font-weight: 600;
   user-select: none;
   vertical-align: middle;
+  border: 1px solid #333;
 }
 .segmented-toggle input[type="radio"] {
   display: none;
@@ -619,13 +633,13 @@ input:checked + .slider {
   z-index: 2;
   width: 50%;
   height: 100%;
-  line-height: 36px;
+  line-height: 28px;
   text-align: center;
   cursor: pointer;
-  color: #fff;
+  color: #bbb;
   transition: color 0.2s, background 0.2s;
   font-size: 12px;
-  border-radius: 18px;
+  border-radius: 14px;
   pointer-events: auto;
 }
 .segmented-toggle label[for="toggle-live"] {
@@ -635,27 +649,65 @@ input:checked + .slider {
   right: 0;
 }
 .segmented-toggle input#toggle-live:checked ~ label[for="toggle-live"] {
-  color: #a259f7;
+  color: #232425;
   background: #fff;
 }
 .segmented-toggle input#toggle-summary:checked ~ label[for="toggle-summary"] {
-  color: #a259f7;
+  color: #232425;
   background: #fff;
 }
 .segmented-toggle-slider {
   position: absolute;
   z-index: 1;
-  top: 3px;
-  left: 3px;
-  width: 54px;
-  height: 30px;
+  top: 2px;
+  left: 2px;
+  width: 60px;
+  height: 24px;
   background: #fff;
-  border-radius: 15px;
+  border-radius: 12px;
   transition: left 0.2s;
 }
 .segmented-toggle input#toggle-summary:checked ~ .segmented-toggle-slider {
-  left: 63px;
+  left: 62px;
 }
 .segmented-toggle input#toggle-live:checked ~ .segmented-toggle-slider {
-  left: 3px;
+  left: 2px;
+}
+
+/* Action item thumbs up button */
+.sales-action-item button {
+  background: none;
+  border: none;
+  color: #bbb;
+  font-size: 16px;
+  cursor: pointer;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 0;
+  transition: color 0.2s;
+}
+.sales-action-item button:hover {
+  color: #4CAF50;
+}
+
+/* Because of section */
+.sales-action-item .because-of-section {
+  background: #232425;
+  border-radius: 6px;
+  border-left: 2px solid #444;
+  margin-top: 8px;
+  padding: 8px 10px;
+  color: #fff;
+  font-size: 12px;
+}
+
+/* Make all monospace */
+select, button, input, .btn-text, .btn-icon {
+  font-family: inherit;
+}
+
+/* Headings */
+.panel-header, #leftPaneTitle {
+  font-size: 12px;
 } 

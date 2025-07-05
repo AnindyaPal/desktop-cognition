@@ -401,7 +401,7 @@ function hideOverlayForScreenshot() {
 function updateAgentPanel() {
     const agent = agentDropdown.value;
     if (agent === 'general') {
-        agentPanelTitle.textContent = '🧠 General Agent Output';
+        agentPanelTitle.textContent = 'Meeting Agent';
         generalAgentContainer.style.display = '';
         salesAgentContainer.style.display = 'none';
         momContent.textContent = 'Meeting summary and decisions will appear here...';
@@ -409,7 +409,7 @@ function updateAgentPanel() {
         salesActionItemsList.innerHTML = '';
         salesActionItems = [];
     } else if (agent === 'sales') {
-        agentPanelTitle.textContent = '💼 Sales Agent Output';
+        agentPanelTitle.textContent = 'Sales Agent';
         generalAgentContainer.style.display = 'none';
         salesAgentContainer.style.display = '';
         salesActionItemsList.innerHTML = '';
@@ -544,7 +544,7 @@ function renderConversationSummary() {
     summaryTitle.style.fontSize = '14px';
     summaryTitle.style.fontWeight = '600';
     summaryTitle.style.marginBottom = '8px';
-    summaryTitle.textContent = '🤖 AI Conversation Summary:';
+    summaryTitle.textContent = 'Conversation Summary:';
     
     const summaryContent = document.createElement('div');
     summaryContent.style.color = '#e0e0e0';
@@ -555,7 +555,7 @@ function renderConversationSummary() {
         // Format the AI summary - it should already be in bullet point format
         summaryContent.innerHTML = aiSummary.replace(/\n/g, '<br>');
     } else {
-        summaryContent.textContent = 'AI summary will appear here every 30 seconds...';
+        summaryContent.textContent = 'Summary will appear here every 30 seconds...';
     }
     
     summarySection.appendChild(summaryTitle);
@@ -764,7 +764,7 @@ function renderSalesLeftPaneSummary() {
     summaryTitle.style.fontSize = '14px';
     summaryTitle.style.fontWeight = '600';
     summaryTitle.style.marginBottom = '8px';
-    summaryTitle.textContent = '🤖 AI Conversation Summary:';
+    summaryTitle.textContent = 'Conversation Summary:';
     const summaryContent = document.createElement('div');
     summaryContent.style.color = '#e0e0e0';
     summaryContent.style.fontSize = '12px';
@@ -772,7 +772,7 @@ function renderSalesLeftPaneSummary() {
     if (aiSummary && aiSummary.trim()) {
         summaryContent.innerHTML = aiSummary.replace(/\n/g, '<br>');
     } else {
-        summaryContent.textContent = 'AI summary will appear here every 30 seconds...';
+        summaryContent.textContent = 'Summary will appear here every 30 seconds...';
     }
     summarySection.appendChild(summaryTitle);
     summarySection.appendChild(summaryContent);
