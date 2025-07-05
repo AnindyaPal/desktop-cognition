@@ -41,7 +41,11 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
     setupEventListeners();
     updateAgentPanel(); // Set initial agent panel
-    sendAgentToBackend(); // Send initial agent to backend
+    
+    // Add delay to ensure backend is ready before sending agent
+    setTimeout(() => {
+        sendAgentToBackend(); // Send initial agent to backend
+    }, 1000);
 
     // Add copy MOM button logic
     const copyMomBtn = document.getElementById('copyMomBtn');
@@ -146,12 +150,15 @@ async function toggleListening() {
 
 async function startListening() {
     try {
-        const result = await ipcRenderer.invoke('start-listening');
+        // DISABLE MICROPHONE ACCESS FOR SYSTEM AUDIO TESTING
+        console.log('Microphone access disabled - testing system audio only');
+        
+        const result = await ipcRenderer.invoke('start-unified-listening');
         if (result.success) {
             isListening = true;
             updateUIForListening(true);
             clearTranscription();
-            console.log('Started listening');
+            console.log('Started listening to system audio only');
         } else {
             console.error('Failed to start listening:', result.error);
             showError('Failed to start listening');
@@ -164,7 +171,7 @@ async function startListening() {
 
 async function stopListening() {
     try {
-        const result = await ipcRenderer.invoke('stop-listening');
+        const result = await ipcRenderer.invoke('stop-unified-listening');
         if (result.success) {
             isListening = false;
             updateUIForListening(false);
@@ -199,6 +206,7 @@ function updateUIForListening(listening) {
 }
 
 function handleTranscriptionResult(event, transcription) {
+    console.log('Received transcription:', transcription);
     if (transcription && transcription.trim()) {
         addTranscriptionEntry(transcription);
     }
@@ -423,6 +431,7 @@ function updateAgentPanel() {
 
 function sendAgentToBackend() {
     const agent = agentDropdown.value;
+    console.log(`[DEBUG] Sending agent to backend: ${agent}`);
     ipcRenderer.invoke('set-agent', agent);
 }
 

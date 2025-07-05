@@ -84,10 +84,17 @@ class ElectronBackend:
                 command = input().strip()
                 if command.startswith("AGENT:"):
                     self.agent = command.split(":", 1)[1].strip()
+                    logger.info(f"Agent set to: {self.agent}")
                 elif command == "START":
                     self.start_listening()
                 elif command == "STOP":
                     self.stop_listening()
+                elif command.startswith("TRANSCRIBE_MIC:"):
+                    audio_file = command.split(":", 1)[1].strip()
+                    self.transcribe_file(audio_file, "MIC")
+                elif command.startswith("TRANSCRIBE_SYS:"):
+                    audio_file = command.split(":", 1)[1].strip()
+                    self.transcribe_file(audio_file, "SYS")
                 elif command == "QUIT":
                     break
             except EOFError:
@@ -138,6 +145,7 @@ class ElectronBackend:
                 self.audio_stream.close()
             
             # On stop, if agent is general, send buffer to OpenAI
+            logger.info(f"Stopping listening. Current agent: {self.agent}")
             if self.agent == "general" and self.transcription_buffer:
                 text = " ".join(self.transcription_buffer)
                 logger.info("Sending meeting transcript to OpenAI (gpt-4o)...")
@@ -227,8 +235,10 @@ class ElectronBackend:
                 print(f"TRANSCRIPTION:{transcription}")
                 sys.stdout.flush()
                 with self.agent_output_lock:
-                    self.transcription_buffer.append(transcription)
+                    # Add [Rep] label for microphone transcriptions
+                    self.transcription_buffer.append(f"[Rep] {transcription}")
                 # For sales agent, buffer utterances and send suggestions every interval
+                logger.info(f"Processing transcription. Current agent: {self.agent}")
                 if self.agent == "sales":
                     self.sales_last_utterances.append(transcription)
                     # Keep only last 3 utterances (~9 seconds if 3s chunks)
@@ -462,6 +472,60 @@ class ElectronBackend:
         if len(self.transcription_buffer) > 1:
             bullets.append(self.transcription_buffer[-1])
         return '\n- '.join([''] + [b.strip() for b in bullets if b.strip()])
+
+    def transcribe_file(self, audio_file, source):
+        """Transcribe a specific audio file"""
+        try:
+            if not os.path.exists(audio_file):
+                logger.error(f"Audio file not found: {audio_file}")
+                return
+            
+            start_time = time.time()
+            
+            # Transcribe
+            segments, info = self.model.transcribe(
+                audio_file,
+                beam_size=1,
+                language="en",
+                condition_on_previous_text=False,
+                vad_filter=False,  # Disable VAD temporarily to test
+                temperature=0.0,
+                compression_ratio_threshold=2.4,
+                log_prob_threshold=-1.0
+            )
+            
+            # Get transcription text
+            transcription = " ".join([segment.text.strip() for segment in segments])
+            
+            # Calculate processing time
+            processing_time = time.time() - start_time
+            
+            # Send transcription to Electron with source prefix
+            if transcription.strip():
+                print(f"TRANSCRIPTION_{source}:{transcription}")
+                sys.stdout.flush()
+                # Add to transcription buffer for meeting summary
+                with self.agent_output_lock:
+                    # Add [Prospect] label for system audio transcriptions
+                    self.transcription_buffer.append(f"[Prospect] {transcription}")
+                logger.info(f"{source} transcription ({processing_time:.2f}s): {transcription}")
+            else:
+                logger.info(f"{source} file produced no transcription - likely silence or invalid audio")
+                # Check file size for debugging
+                try:
+                    file_size = os.path.getsize(audio_file)
+                    logger.info(f"{source} audio file size: {file_size} bytes")
+                except:
+                    pass
+            
+            # Clean up the audio file
+            try:
+                os.unlink(audio_file)
+            except:
+                pass
+                
+        except Exception as e:
+            logger.error(f"Error transcribing {source} file {audio_file}: {e}")
 
 def main():
     """Main function"""
