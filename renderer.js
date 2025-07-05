@@ -759,6 +759,37 @@ function renderSalesLeftPaneSummary() {
     summarySection.style.background = 'none';
     summarySection.style.borderRadius = '0px';
     summarySection.style.borderTop = 'none';
+    summarySection.style.position = 'relative';
+
+    // Copy button (modern SVG icon)
+    const copyBtn = document.createElement('button');
+    copyBtn.id = 'copySummaryBtn';
+    copyBtn.title = 'Copy Summary';
+    copyBtn.style.background = 'none';
+    copyBtn.style.border = 'none';
+    copyBtn.style.cursor = 'pointer';
+    copyBtn.style.fontSize = '16px';
+    copyBtn.style.color = '#a0a0a0';
+    copyBtn.style.padding = '2px 6px';
+    copyBtn.style.position = 'absolute';
+    copyBtn.style.top = '0px';
+    copyBtn.style.right = '0px';
+    copyBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle;"><rect x="5" y="7" width="10" height="10" rx="2" fill="#fff" fill-opacity="0.12" stroke="#bbb" stroke-width="1.2"/><rect x="7.5" y="3" width="10" height="10" rx="2" fill="#fff" fill-opacity="0.12" stroke="#bbb" stroke-width="1.2"/></svg>`;
+    let copyTimeout = null;
+    copyBtn.onclick = () => {
+        if (aiSummary && aiSummary.trim()) {
+            navigator.clipboard.writeText(aiSummary.replace(/<br>/g, '\n'));
+            copyBtn.title = 'Copied!';
+            copyBtn.style.color = '#4CAF50';
+            if (copyTimeout) clearTimeout(copyTimeout);
+            copyTimeout = setTimeout(() => {
+                copyBtn.title = 'Copy Summary';
+                copyBtn.style.color = '#a0a0a0';
+            }, 1200);
+        }
+    };
+    summarySection.appendChild(copyBtn);
+
     const summaryTitle = document.createElement('div');
     summaryTitle.style.color = '#fff';
     summaryTitle.style.fontSize = '14px';
@@ -772,7 +803,7 @@ function renderSalesLeftPaneSummary() {
     if (aiSummary && aiSummary.trim()) {
         summaryContent.innerHTML = aiSummary.replace(/\n/g, '<br>');
     } else {
-        summaryContent.textContent = 'Summary will appear here every 30 seconds...';
+        summaryContent.textContent = 'Info will refresh every 30 seconds...';
     }
     summarySection.appendChild(summaryTitle);
     summarySection.appendChild(summaryContent);
