@@ -85,6 +85,8 @@ class ElectronBackend:
                 if command.startswith("AGENT:"):
                     self.agent = command.split(":", 1)[1].strip()
                     logger.info(f"Agent set to: {self.agent}")
+                    print(f"AGENT_SET:{self.agent}")  # Send confirmation to frontend
+                    sys.stdout.flush()
                 elif command == "START":
                     self.start_listening()
                 elif command == "STOP":
@@ -240,6 +242,7 @@ class ElectronBackend:
                 # For sales agent, buffer utterances and send suggestions every interval
                 logger.info(f"Processing transcription. Current agent: {self.agent}")
                 if self.agent == "sales":
+                    logger.info(f"Sales agent active - processing microphone transcription")
                     self.sales_last_utterances.append(transcription)
                     # Keep only last 3 utterances (~9 seconds if 3s chunks)
                     self.sales_last_utterances = self.sales_last_utterances[-3:]
@@ -509,14 +512,54 @@ class ElectronBackend:
                     # Add [Prospect] label for system audio transcriptions
                     self.transcription_buffer.append(f"[Prospect] {transcription}")
                 logger.info(f"{source} transcription ({processing_time:.2f}s): {transcription}")
-            else:
-                logger.info(f"{source} file produced no transcription - likely silence or invalid audio")
-                # Check file size for debugging
-                try:
-                    file_size = os.path.getsize(audio_file)
-                    logger.info(f"{source} audio file size: {file_size} bytes")
-                except:
-                    pass
+                
+                # For sales agent, also process system audio for suggestions and summary updates
+                if self.agent == "sales":
+                    logger.info(f"Sales agent active - processing system audio transcription")
+                    self.sales_last_utterances.append(transcription)
+                    # Keep only last 3 utterances (~9 seconds if 3s chunks)
+                    self.sales_last_utterances = self.sales_last_utterances[-3:]
+                    now = time.time()
+                    
+                    # Check if it's time for action items (every 10 seconds)
+                    if now - self.sales_last_suggestion_time > self.sales_suggestion_interval:
+                        self.sales_last_suggestion_time = now
+                        # Always use the full context for summary
+                        summary = self.generate_sales_summary(full_context=True)
+                        last_utterance = " ".join(self.sales_last_utterances)
+                        metadata = json.dumps(self.sales_metadata) if self.sales_metadata else ''
+                        response = self.query_openai_sales(summary, last_utterance, metadata)
+                        self.last_agent_output = response
+                        print(f"AGENT_OUTPUT:{response}")
+                        sys.stdout.flush()
+                    
+                    # Check if it's time for summary update (every 30 seconds)
+                    if now - self.summary_last_update_time > self.summary_update_interval:
+                        self.summary_last_update_time = now
+                        
+                        # Get only NEW transcriptions since last summary update
+                        current_transcription_count = len(self.transcription_buffer)
+                        new_transcriptions_start = self.last_summary_transcription_count
+                        new_transcriptions_end = current_transcription_count
+                        
+                        # Get only the new transcriptions (last 30 seconds worth)
+                        new_transcriptions = []
+                        if new_transcriptions_end > new_transcriptions_start:
+                            new_transcriptions = self.transcription_buffer[new_transcriptions_start:new_transcriptions_end]
+                        
+                        # Join new transcriptions into text
+                        new_transcription_text = " ".join(new_transcriptions) if new_transcriptions else ""
+                        
+                        # Only update if we have new transcriptions
+                        if new_transcription_text.strip():
+                            new_summary = self.query_openai_summary(self.ai_summary, new_transcription_text)
+                            if new_summary != self.ai_summary:
+                                self.ai_summary = new_summary
+                                print(f"SUMMARY_UPDATE:{new_summary}")
+                                sys.stdout.flush()
+                        
+                        # Update the count for next time
+                        self.last_summary_transcription_count = current_transcription_count
             
             # Clean up the audio file
             try:
@@ -524,8 +567,21 @@ class ElectronBackend:
             except:
                 pass
                 
+            # Check file size for debugging
+            try:
+                file_size = os.path.getsize(audio_file)
+                logger.info(f"{source} audio file size: {file_size} bytes")
+            except:
+                pass
+                
         except Exception as e:
             logger.error(f"Error transcribing {source} file {audio_file}: {e}")
+            # Check file size for debugging
+            try:
+                file_size = os.path.getsize(audio_file)
+                logger.info(f"{source} audio file size: {file_size} bytes")
+            except:
+                pass
 
 def main():
     """Main function"""

@@ -73,6 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentAgent = agentDropdown.value;
             updateAgentPanel();
             clearTranscription();
+            sendAgentToBackend(); // Send agent to backend when changed
         });
     }
 
