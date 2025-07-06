@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, systemPreferences, shell } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const { startRecording, stopRecording } = require('./macos-system-audio/recording');
@@ -6,6 +6,10 @@ const os = require('os');
 const ffmpeg = require('fluent-ffmpeg');
 const { writeFileSync, unlinkSync } = require('fs');
 const { v4: uuidv4 } = require('uuid');
+const fs = require('fs');
+const userDataPath = app.getPath('userData');
+const onboardingFlagPath = path.join(userDataPath, 'onboarding-complete.json');
+const checkSystemAudioPermission = require('./macos-system-audio/permission').checkPermissions;
 
 let mainWindow;
 let pythonProcess;
@@ -17,7 +21,33 @@ let chunkInterval = null;
 let micChunks = [];
 let sysChunks = [];
 
-function createWindow() {
+function isOnboardingComplete() {
+  try {
+    const data = fs.readFileSync(onboardingFlagPath, 'utf-8');
+    const json = JSON.parse(data);
+    return json && json.completed;
+  } catch (e) {
+    return false;
+  }
+}
+
+function setOnboardingComplete() {
+  fs.writeFileSync(onboardingFlagPath, JSON.stringify({ completed: true }), 'utf-8');
+}
+
+async function shouldShowOnboarding() {
+  if (!isOnboardingComplete()) return true;
+  const micStatus = systemPreferences.getMediaAccessStatus('microphone');
+  let sysAudioGranted = false;
+  try {
+    sysAudioGranted = await checkSystemAudioPermission();
+  } catch (e) {
+    sysAudioGranted = false;
+  }
+  return !(micStatus === 'granted' && sysAudioGranted);
+}
+
+async function createWindow() {
   // Create the browser window with transparent overlay settings
   mainWindow = new BrowserWindow({
     width: 800,
@@ -65,8 +95,12 @@ function createWindow() {
   // Enable content protection - hides from screenshots but keeps visible to user
   mainWindow.setContentProtection(true);
 
-  // Load the index.html file
-  mainWindow.loadFile('index.html');
+  // Load onboarding.html if onboarding not complete or permissions missing, else index.html
+  if (await shouldShowOnboarding()) {
+    mainWindow.loadFile('onboarding.html');
+  } else {
+    mainWindow.loadFile('index.html');
+  }
 
   // Open DevTools in development
   if (process.argv.includes('--dev')) {
@@ -280,7 +314,6 @@ ipcMain.handle('start-unified-listening', async () => {
       const sysFullPath = `${sysDir}/${sysBase}.wav`;
       const sysChunkPath = `${os.tmpdir()}/${sysBase}-${sysChunkIdx}.wav`;
       sysChunkIdx++;
-      const fs = require('fs');
       
       if (fs.existsSync(sysFullPath)) {
         const currentFileSize = fs.statSync(sysFullPath).size;
@@ -470,4 +503,28 @@ function mixAudioFiles(micPath, sysPath, outPath) {
   });
 }
 
-module.exports.mixAudioFiles = mixAudioFiles; 
+module.exports.mixAudioFiles = mixAudioFiles;
+
+// IPC handler to mark onboarding as complete
+ipcMain.handle('set-onboarding-complete', async () => {
+  setOnboardingComplete();
+  return { success: true };
+});
+
+ipcMain.handle('check-mic-permission', () => {
+  return systemPreferences.getMediaAccessStatus('microphone');
+});
+
+ipcMain.handle('request-mic-permission', async () => {
+  return await systemPreferences.askForMediaAccess('microphone');
+});
+
+ipcMain.handle('open-system-settings', (event, type) => {
+  if (process.platform === 'darwin') {
+    if (type === 'microphone') {
+      shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone');
+    } else if (type === 'screen') {
+      shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture');
+    }
+  }
+}); 

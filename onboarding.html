@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Granola Onboarding</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body {
+      background: #18191c;
+      color: #fff;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .onboarding-container {
+      background: #202124;
+      border-radius: 12px;
+      box-shadow: 0 4px 32px rgba(0,0,0,0.25);
+      border: 1px solid #232425;
+      width: 340px;
+      max-width: 90vw;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 18px 18px 18px;
+    }
+    .onboarding-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      text-align: center;
+      color: #fff;
+      font-family: inherit;
+    }
+    .onboarding-desc {
+      color: #b0b3b8;
+      font-size: 12px;
+      margin-bottom: 18px;
+      text-align: center;
+      max-width: 320px;
+      font-family: inherit;
+    }
+    .onboarding-error {
+      color: #ff6b6b;
+      font-size: 11px;
+      min-height: 16px;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+    .perm-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      margin-bottom: 14px;
+    }
+    .perm-label {
+      font-size: 12px;
+      font-weight: 500;
+      font-family: inherit;
+    }
+    .perm-btn {
+      font-size: 11px;
+      padding: 5px 14px;
+      margin-left: 10px;
+    }
+    .onboarding-continue {
+      display: block;
+      margin: 18px auto 0 auto;
+      min-width: 120px;
+      max-width: 220px;
+      width: 100%;
+      font-size: 12px;
+      padding: 10px 0;
+      border-radius: 8px;
+    }
+    .perm-btn:active {
+      background: #3a3b3f;
+    }
+    .perm-check {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #1b2e23;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: 16px;
+    }
+    .perm-check.active {
+      background: #0ecb8a;
+      color: #fff;
+    }
+    .perm-check svg {
+      width: 18px;
+      height: 18px;
+      display: block;
+    }
+    .onboarding-continue:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container" style="height: 100vh; display: flex; align-items: center; justify-content: center;">
+    <div class="onboarding-container">
+      <div class="title" style="margin-bottom: 18px;">Cognition</div>
+      <div class="onboarding-title">First, allow Cognition to transcribe your meetings</div>
+      <div class="onboarding-desc">Cognition transcribes with the sound in your laptop. No bots join your meeting. Only when you turn it on.</div>
+      <div class="perm-row">
+        <span class="perm-label">Transcribe my voice</span>
+        <button class="perm-btn listen-btn" id="enableMicBtn" style="-webkit-app-region: no-drag;">Enable Microphone</button>
+      </div>
+      <div class="perm-row">
+        <span class="perm-label">Transcribe other people's voices</span>
+        <button class="perm-btn listen-btn" id="enableSysBtn" style="-webkit-app-region: no-drag;">Enable System Audio</button>
+      </div>
+      <div style="min-height: 18px; text-align: center;">
+        <span id="onboardingError" class="onboarding-error"></span>
+      </div>
+      <button class="onboarding-continue listen-btn" id="continueBtn" disabled style="-webkit-app-region: no-drag;">Continue</button>
+      <div id="helperText" style="font-size: 11px; color: #aaa; text-align: center; margin-top: 6px;"></div>
+    </div>
+  </div>
+  <script>
+    const { ipcRenderer } = require('electron');
+    const { checkPermissions } = require('./macos-system-audio/permission');
+    const micBtn = document.getElementById('enableMicBtn');
+    const sysBtn = document.getElementById('enableSysBtn');
+    const continueBtn = document.getElementById('continueBtn');
+    const errorDiv = document.getElementById('onboardingError');
+    const helperText = document.getElementById('helperText');
+
+    let micGranted = false;
+    let sysGranted = false;
+    let micTried = false;
+    let sysTried = false;
+
+    function updateChecks() {
+      if (micGranted) {
+        micBtn.disabled = true;
+        micBtn.textContent = 'Microphone Enabled';
+        micBtn.style.background = '#0ecb8a';
+        micBtn.style.color = '#18191c';
+      } else {
+        micBtn.disabled = false;
+        micBtn.textContent = 'Enable Microphone';
+        micBtn.style.background = '';
+        micBtn.style.color = '';
+        if (micTried) {
+          errorDiv.textContent = 'Microphone permission denied. Please enable it in System Settings > Privacy & Security > Microphone.';
+        } else {
+          errorDiv.textContent = '';
+        }
+      }
+      if (sysGranted) {
+        sysBtn.disabled = true;
+        sysBtn.textContent = 'System Audio Enabled';
+        sysBtn.style.background = '#0ecb8a';
+        sysBtn.style.color = '#18191c';
+      } else {
+        sysBtn.disabled = false;
+        sysBtn.textContent = 'Enable System Audio';
+        sysBtn.style.background = '';
+        sysBtn.style.color = '';
+        if (sysTried) {
+          errorDiv.textContent = 'System audio (screen recording) permission denied. Please enable it in System Settings > Privacy & Security > Screen Recording.';
+        } else {
+          if (!micTried) errorDiv.textContent = '';
+        }
+      }
+      continueBtn.disabled = !(micGranted && sysGranted);
+      helperText.textContent = '';
+      if (!micGranted || !sysGranted) {
+        helperText.textContent = 'Enable both permissions above to continue.';
+      }
+    }
+
+    async function checkMicPermission() {
+      micTried = true;
+      errorDiv.textContent = '';
+      try {
+        const result = await ipcRenderer.invoke('request-mic-permission');
+        if (result === true || result === 'granted') {
+          micGranted = true;
+        } else {
+          micGranted = false;
+        }
+        updateChecks();
+      } catch (e) {
+        micGranted = false;
+        updateChecks();
+        console.error('Mic permission error:', e);
+      }
+    }
+
+    async function checkSysPermission() {
+      sysTried = true;
+      errorDiv.textContent = '';
+      try {
+        sysGranted = await checkPermissions();
+        updateChecks();
+      } catch (e) {
+        sysGranted = false;
+        updateChecks();
+        console.error('System audio permission error:', e);
+      }
+    }
+
+    micBtn.onclick = () => {
+      checkMicPermission();
+    };
+    sysBtn.onclick = () => {
+      checkSysPermission();
+    };
+    continueBtn.onclick = async () => {
+      await ipcRenderer.invoke('set-onboarding-complete');
+      window.location = 'index.html';
+    };
+
+    async function checkMicPermissionStatus() {
+      try {
+        const status = await ipcRenderer.invoke('check-mic-permission');
+        micGranted = (status === true || status === 'granted');
+        updateChecks();
+      } catch (e) {
+        micGranted = false;
+        updateChecks();
+      }
+    }
+
+    async function checkSysPermissionStatus() {
+      try {
+        sysGranted = await checkPermissions();
+        updateChecks();
+      } catch (e) {
+        sysGranted = false;
+        updateChecks();
+      }
+    }
+
+    // On load, only check status, do not show errors or settings buttons
+    micTried = false;
+    sysTried = false;
+    checkMicPermissionStatus();
+    checkSysPermissionStatus();
+    updateChecks();
+  </script>
+</body>
+</html> 
