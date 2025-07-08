@@ -167,9 +167,30 @@ class RecorderCLI: NSObject, SCStreamDelegate, SCStreamOutput {
     }
 
     static func terminateRecording() {
-        screenCaptureStream?.stopCapture()
+        fputs("DEBUG: terminateRecording called\n", stderr)
+        if let stream = screenCaptureStream {
+            if #available(macOS 13.0, *) {
+                stream.stopCapture { error in
+                    if let error = error {
+                        fputs("DEBUG: stopCapture error: \(error.localizedDescription)\n", stderr)
+                    } else {
+                        fputs("DEBUG: stopCapture completed successfully\n", stderr)
+                    }
+                    screenCaptureStream = nil
+                    audioFileForRecording = nil
+                    // Only exit after stopCapture completes
+                    exit(0)
+                }
+                return // Don't continue to exit below
+            } else {
+                stream.stopCapture()
+                fputs("DEBUG: stopCapture called (no completion handler)\n", stderr)
+            }
+        }
         screenCaptureStream = nil
         audioFileForRecording = nil
+        fputs("DEBUG: terminateRecording finished\n", stderr)
+        exit(0)
     }
 }
 

@@ -1,3 +1,13 @@
+# Cognition
+
+## Cognition v1 Features
+
+- **Meeting Agent:** Does exactly what Granola does – captures everything you hear, no bots needed. Transforms messy meeting notes into clean, actionable and shareable action items and MOMs.
+
+- **Sales Agent:** Real-time contextual intel like Cluely. It will literally tell you "your prospect mentioned budget concerns at the 15th minute – you missed probing that." and all the phrasing is backed by SPIN, MEDDIC selling techniques. Not generic advice – specific missed opportunities called out in real-time. Saves you from that post-meeting "damn, should have said this" moment.
+
+- **Transparent and Invisible:** Yes – it won't show up in screen recording, screen shares and stays persistent across macOS multiple desktops and apps.
+
 # Faster Whisper Real-time Transcription Test
 
 This project tests the real-time transcription capabilities of [faster-whisper](https://github.com/SYSTRAN/faster-whisper), a fast implementation of OpenAI's Whisper model using CTranslate2.

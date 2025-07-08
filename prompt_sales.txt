@@ -18,7 +18,7 @@ Instructions:
 - Respond ONLY with a JSON array of 2-3 objects.
 
 Each object must contain:
-- "phrasing": the exact sentence the rep should say next like a CTO of a comapny, keep it raw and humane.
+- "phrasing": the exact sentence the rep should say next like a CTO of a comapny, keep it raw and humane and to the point..
 - "because_of": the specific customer phrase or signal that triggered this suggestion (quote them if possible)
 
 
