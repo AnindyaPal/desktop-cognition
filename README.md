@@ -8,6 +8,10 @@
 
 - **Transparent and Invisible:** Yes – it won't show up in screen recording, screen shares and stays persistent across macOS multiple desktops and apps.
 
+---
+
+[▶️ Watch Cognition Demo on Loom](https://www.loom.com/share/12b8d21763db435c8deec03caa4c3952?sid=945d02c4-7cd9-4ed8-af0f-e109bb16da4c)
+
 # Faster Whisper Real-time Transcription Test
 
 This project tests the real-time transcription capabilities of [faster-whisper](https://github.com/SYSTRAN/faster-whisper), a fast implementation of OpenAI's Whisper model using CTranslate2.
