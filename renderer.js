@@ -27,6 +27,14 @@ const salesActionItemsList = document.getElementById('salesActionItemsList');
 salesActionItemsList.className = 'sales-action-items-list';
 salesAgentContainer.insertBefore(salesActionItemsList, salesAgentContainer.firstChild);
 
+// Settings popup logic
+const settingsBtn = document.getElementById('settingsBtn');
+const settingsPopup = document.getElementById('settingsPopup');
+const openaiKeyInput = document.getElementById('openaiKeyInput');
+const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+const settingsSavedMsg = document.getElementById('settingsSavedMsg');
+
 // State
 let isListening = false;
 let transcriptionHistory = [];
@@ -115,6 +123,47 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     updateSalesLeftPane();
+
+    if (settingsBtn && settingsPopup) {
+        settingsBtn.addEventListener('click', () => {
+            // Load saved key if present
+            const savedKey = localStorage.getItem('openai_api_key') || '';
+            openaiKeyInput.value = savedKey;
+            settingsPopup.style.display = 'block';
+            settingsSavedMsg.style.display = 'none';
+            openaiKeyInput.focus();
+        });
+    }
+    if (closeSettingsBtn && settingsPopup) {
+        closeSettingsBtn.addEventListener('click', () => {
+            settingsPopup.style.display = 'none';
+        });
+    }
+    if (saveSettingsBtn && openaiKeyInput) {
+        saveSettingsBtn.addEventListener('click', () => {
+            const key = openaiKeyInput.value.trim();
+            if (key.startsWith('sk-')) {
+                localStorage.setItem('openai_api_key', key);
+                // Send key to backend for use
+                window.electron?.ipcRenderer?.invoke('set-openai-key', key);
+                if (typeof ipcRenderer !== 'undefined') {
+                    ipcRenderer.invoke('set-openai-key', key);
+                }
+                settingsSavedMsg.style.display = 'block';
+                setTimeout(() => {
+                    settingsSavedMsg.style.display = 'none';
+                    settingsPopup.style.display = 'none';
+                }, 1200);
+            } else {
+                openaiKeyInput.style.border = '1.5px solid #e74c3c';
+                openaiKeyInput.placeholder = 'Enter a valid OpenAI key';
+                setTimeout(() => {
+                    openaiKeyInput.style.border = '1px solid #444';
+                    openaiKeyInput.placeholder = 'sk-...';
+                }, 1200);
+            }
+        });
+    }
 });
 
 function initializeApp() {

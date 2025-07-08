@@ -23,9 +23,11 @@ import openai
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# OpenAI API key (for demo only, do not hardcode in production)
-OPENAI_KEY = "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"
-client = openai.OpenAI(api_key=OPENAI_KEY)
+# Remove hardcoded OpenAI API key and client initialization
+# OPENAI_KEY = "sk-proj-..."
+# client = openai.OpenAI(api_key=OPENAI_KEY)
+
+client = None  # Will be set when user provides key via settings
 
 class ElectronBackend:
     def __init__(self):
@@ -97,6 +99,14 @@ class ElectronBackend:
                 elif command.startswith("TRANSCRIBE_SYS:"):
                     audio_file = command.split(":", 1)[1].strip()
                     self.transcribe_file(audio_file, "SYS")
+                elif command.startswith("OPENAI_KEY:"):
+                    new_key = command.split(":", 1)[1].strip()
+                    if new_key.startswith("sk-"):
+                        global client
+                        client = openai.OpenAI(api_key=new_key)
+                        logger.info("OpenAI API key updated via settings.")
+                        print("OPENAI_KEY_SET")
+                        sys.stdout.flush()
                 elif command == "QUIT":
                     break
             except EOFError:

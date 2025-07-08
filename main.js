@@ -527,4 +527,12 @@ ipcMain.handle('open-system-settings', (event, type) => {
       shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture');
     }
   }
+});
+
+ipcMain.handle('set-openai-key', async (event, key) => {
+  if (pythonProcess && key && key.startsWith('sk-')) {
+    pythonProcess.stdin.write(`OPENAI_KEY:${key}\n`);
+    return { success: true };
+  }
+  return { success: false, error: 'Invalid key or backend not ready' };
 }); 
